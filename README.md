@@ -130,7 +130,3 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for skill format, triggers, and contr
 ## License
 
 MIT — see [`LICENSE`](./LICENSE).
-
-## Author
-
-**Hubert (rainkode) / HLSI Tech** — Longueuil, QC.
