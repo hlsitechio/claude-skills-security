@@ -1,12 +1,10 @@
 <p align="center">
-  <img src="docs/banner.png" alt="claude-skills-security — 40 Defensive Security Audit Skills for SaaS Apps" width="100%">
+  <img src="docs/banner.png" alt="claude-skills-security — Defensive Security Audit Skills for SaaS Apps" width="100%">
 </p>
 
 # claude-skills-security
 
 A collection of **40 defensive security audit skills for Claude**, organized as two complementary packs.
-
-> The banner image still shows "39" — it pre-dates the `web-platform-security` addition. Will refresh on next visual update.
 
 The packs answer different questions, and Claude picks skills from either (or both) based on what the user is asking:
 
