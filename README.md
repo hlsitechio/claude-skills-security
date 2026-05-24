@@ -135,7 +135,15 @@ Each pack also has a `scripts/package_skills.sh` that produces per-skill `.zip` 
 
 > 🛡️ This repository is the source of truth for **40 defensive security audit skills**. A flaw in the *content* (a check recommending an insecure pattern, a "GOOD" example with a subtle bug, a missing CVE reference) can propagate to downstream audits — so we treat content bugs as security issues.
 
-**Reporting:**
+### How to report (machine + human readable)
+
+```
+Contact: https://github.com/hlsitechio/claude-skills-security/security/advisories/new
+Contact: mailto:hlarosesurprenant@gmail.com
+Policy:  https://github.com/hlsitechio/claude-skills-security/blob/main/SECURITY.md
+```
+
+The same info is published in standards-compliant form at [`/.well-known/security.txt`](.well-known/security.txt) (RFC 9116) for automated scanners.
 
 | Channel | Use when |
 |---------|----------|
@@ -144,13 +152,27 @@ Each pack also has a `scripts/package_skills.sh` that produces per-skill `.zip` 
 
 **SLA:** acknowledged within 3 business days · triaged within 7 days · Critical fixes shipped within 14 days · 90-day coordinated disclosure unless otherwise agreed.
 
-Full policy and what counts as in-scope: [`SECURITY.md`](SECURITY.md).
+### In scope
 
-**Repo-side guarantees:**
-- Every PR touching skill content, the tech inventory, CI workflows, or scripts requires maintainer review (see [`.github/CODEOWNERS`](.github/CODEOWNERS)).
-- Every PR runs gitleaks + a custom entropy scanner ([`.github/workflows/secret-scan.yml`](.github/workflows/secret-scan.yml)).
-- Every PR is validated against the SKILL.md schema and Claude upload constraints ([`.github/workflows/validate-all.yml`](.github/workflows/validate-all.yml)).
-- The CI workflow itself follows the supply-chain guidance the skills teach: minimal token, SHA-pinned actions.
+- A check that **recommends an insecure pattern** as if it were safe.
+- A "GOOD" code example with a subtle flaw that would land in a real audit report.
+- A **missing CVE / advisory** for a tech tracked in [`.github/tech-inventory.yml`](.github/tech-inventory.yml) — particularly Critical / High severity ones referenced by upstream vendors.
+- Any path that would lead a downstream user to deploy a vulnerable configuration.
+
+### Out of scope
+
+- "I'd phrase this differently" — open a PR.
+- "Doesn't cover X" — open an issue.
+- "Reference isn't from my favorite source" — open a PR with a better source.
+
+Full policy: [`SECURITY.md`](SECURITY.md).
+
+### Repo-side guarantees
+
+- **CODEOWNERS** required review on every PR touching skill content, the tech inventory, CI workflows, or scripts ([`.github/CODEOWNERS`](.github/CODEOWNERS)).
+- **Secret scanning** on every PR + weekly full-history rescan: gitleaks with project-specific allowlist + custom entropy scanner ([`.github/workflows/secret-scan.yml`](.github/workflows/secret-scan.yml)).
+- **Schema validation** on every PR: SKILL.md frontmatter + Claude upload constraints (description ≤1024 chars, no XML-like tags) + tech-inventory schema v3 ([`.github/workflows/validate-all.yml`](.github/workflows/validate-all.yml)).
+- **Eat-our-own-dogfood CI**: minimal `permissions: {}` at workflow level, `contents: read` per job, all third-party actions SHA-pinned (the same supply-chain guidance the skills teach).
 
 ## Companion projects
 

@@ -1,0 +1,20 @@
+# RFC 9116 — security.txt
+# https://datatracker.ietf.org/doc/html/rfc9116
+#
+# Machine-readable contact info for security researchers and automated
+# scanners. Mirrors the policy in SECURITY.md.
+
+Contact: https://github.com/hlsitechio/claude-skills-security/security/advisories/new
+Contact: mailto:hlarosesurprenant@gmail.com
+Expires: 2027-05-24T00:00:00.000Z
+Preferred-Languages: en, fr
+Canonical: https://raw.githubusercontent.com/hlsitechio/claude-skills-security/main/.well-known/security.txt
+Policy: https://github.com/hlsitechio/claude-skills-security/blob/main/SECURITY.md
+Acknowledgments: https://github.com/hlsitechio/claude-skills-security/blob/main/SECURITY.md#credit
+
+# Scope
+# In-scope: SKILL.md content recommending insecure patterns, GOOD
+# examples with subtle flaws, missing CVE references in tech-inventory,
+# any path that would lead a downstream user to a vulnerable config.
+# Out-of-scope: opinions on phrasing, missing topic coverage, framework
+# preference. Open an issue or PR for those.
