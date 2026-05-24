@@ -1,6 +1,7 @@
 # Build artifacts
 dist/
 *.zip
+artifacts/
 
 # Editor / OS junk
 .DS_Store

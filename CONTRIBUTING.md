@@ -72,26 +72,19 @@ The `description:` is what Claude uses to route. Make it:
 
 ## Validation
 
-Both packs have a CI workflow (`.github/workflows/validate-skills.yml`) that checks:
-- YAML frontmatter present and valid
-- `name` matches folder name
-- Referenced files in `references/` actually exist
+The repository has CI validation workflows (`.github/workflows/validate-all.yml` and `.github/workflows/daily-skills-review.yml`) that check content-oriented quality, including:
+- required file presence and skill structure
+- YAML frontmatter validity and `name`/folder alignment
+- required workflow section headings in each `SKILL.md`
+- duplicate skill names/titles
+- broken internal references or malformed link targets
+- shell script hygiene (`bash -n`, and `shellcheck` when available)
 
 Run locally:
 
 ```bash
-cd saas-security-pack  # or appsec-stack-pack
-python3 -c "$(cat <<'EOF'
-import os, re, yaml
-for root, dirs, files in os.walk('.'):
-    if 'SKILL.md' not in files: continue
-    with open(f'{root}/SKILL.md') as f: c = f.read()
-    m = re.match(r'^---\n(.*?)\n---', c, re.DOTALL)
-    meta = yaml.safe_load(m.group(1))
-    assert meta['name'] == os.path.basename(root), root
-print('OK')
-EOF
-)"
+./scripts/run_daily_review.sh
+# summary output: artifacts/daily-review-summary.md
 ```
 
 ## Issue and PR templates

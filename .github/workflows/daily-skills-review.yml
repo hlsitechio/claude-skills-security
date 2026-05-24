@@ -1,0 +1,47 @@
+name: daily-skills-review
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install review dependencies
+        run: pip install pyyaml
+
+      - name: Run daily skills review
+        id: review
+        continue-on-error: true
+        run: ./scripts/run_daily_review.sh
+
+      - name: Upload daily review summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-skills-review-summary
+          path: artifacts/daily-review-summary.md
+          if-no-files-found: error
+
+      - name: Fail workflow if review detected problems
+        if: steps.review.outcome == 'failure'
+        run: |
+          echo "Daily skills review found issues. See artifacts/daily-review-summary.md for actionable details."
+          cat artifacts/daily-review-summary.md
+          exit 1

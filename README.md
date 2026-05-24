@@ -103,6 +103,25 @@ Each pack also has a `scripts/package_skills.sh` that produces per-skill `.zip` 
 - **Multi-skill orchestration.** A real audit often activates 5+ skills. Finding ID prefixes prevent collision; the combined report is severity-sorted.
 - **Reproducible evidence.** Every finding has a file:line reference and a copy-pasteable remediation.
 
+## Daily automated review
+
+The repository runs `.github/workflows/daily-skills-review.yml` on a daily schedule to keep skill content consistent and actionable. The review script is content-focused (not compile-focused) and checks:
+
+- required repository/pack files and skill structure,
+- `SKILL.md` frontmatter and required workflow sections,
+- duplicate skill names/titles,
+- broken internal file references and obviously malformed link targets,
+- shell-script hygiene (`bash -n`, plus `shellcheck` when available),
+- generation of a human-readable summary at `artifacts/daily-review-summary.md`.
+
+In CI, the summary is uploaded as an artifact (`daily-skills-review-summary`) and the workflow fails with actionable output when validation errors are detected.
+
+Run locally:
+
+```bash
+./scripts/run_daily_review.sh
+```
+
 ## Companion projects
 
 - **[Crowbyte](https://crowbyte.io)** — Offensive security platform (red team / blue team / purple team modes)
