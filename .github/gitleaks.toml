@@ -1,0 +1,40 @@
+# gitleaks configuration for claude-skills-security
+#
+# Inherits the default ruleset (covers AWS, GCP, Azure, GitHub, Stripe,
+# Supabase, OpenAI, Anthropic, Slack, and ~150 other providers) and
+# adds project-specific allowlists for legitimate citation strings.
+
+title = "claude-skills-security"
+
+[extend]
+# Use gitleaks' default ruleset as a base.
+useDefault = true
+
+[allowlist]
+description = "Allowlist for citation strings and known placeholders that look secret-like to the scanner but are intentionally in the content."
+
+# Files where high-entropy strings are intentional (action SHA pins, CVE
+# hashes, example signatures).
+paths = [
+    '''^docs/''',
+    '''.github/tech-inventory\.yml$''',
+    '''.github/workflows/secret-scan\.yml$''',
+    '''.+/references/.*\.md$''',
+    '''.+/assets/.*''',
+    '''README\.md$''',
+    '''.+/README\.md$''',
+]
+
+# Regexes that match strings we *want* to keep in skill content even if
+# they superficially resemble secrets.
+regexes = [
+    # Action SHA pins (full 40-hex commit IDs in workflow / asset templates)
+    '''[0-9a-f]{40}\s*#\s*v[0-9]+\.[0-9]+\.[0-9]+''',
+    # Common documentation placeholders for token prefixes
+    '''(?i)(sk_live_|sk_test_|pk_live_|pk_test_|whsec_|sb_publishable_|sb_secret_|lit_pat_)REPLACE''',
+    '''(?i)(YOUR_|EXAMPLE_|PLACEHOLDER_|REDACTED_)[A-Z0-9_]+''',
+    # SRI hashes used as examples in CSP / Trusted Types docs
+    '''sha(256|384|512)-[A-Za-z0-9+/=]{20,}''',
+    # CVE / GHSA identifiers
+    '''(CVE|GHSA)-[A-Za-z0-9-]+''',
+]

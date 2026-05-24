@@ -1,0 +1,29 @@
+# CODEOWNERS — required reviewers for changes to specific paths.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Currently a single-maintainer repo; this file ensures every PR is
+# routed for review. Add team members above @hlsitechio as the project
+# grows to require domain-specific review.
+
+# Default owner for everything
+*                                            @hlsitechio
+
+# Skill content — every PR touching a SKILL.md or its references
+# needs a maintainer review because the content drives real audits.
+*/SKILL.md                                   @hlsitechio
+**/references/*.md                           @hlsitechio
+**/_shared/*.md                              @hlsitechio
+
+# Inventory — version drift surface; CVE / source claims must be
+# verified before merge.
+/.github/tech-inventory.yml                  @hlsitechio
+
+# CI workflows + repo-level security policy — high blast radius.
+/.github/workflows/                          @hlsitechio
+/.github/CODEOWNERS                          @hlsitechio
+/SECURITY.md                                 @hlsitechio
+/.github/SECURITY.md                         @hlsitechio
+
+# Packaging + bulk-upload scripts — touch them carefully.
+**/scripts/                                  @hlsitechio
+/scripts/                                    @hlsitechio
