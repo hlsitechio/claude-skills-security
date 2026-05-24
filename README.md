@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="claude-skills-security — Defensive Security Audit Skills for SaaS Apps" width="100%">
+  <img src="docs/banner-v2.png" alt="claude-skills-security — Defensive Security Audit Skills for SaaS Apps" width="100%">
 </p>
 
 # claude-skills-security
