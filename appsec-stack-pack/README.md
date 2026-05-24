@@ -1,6 +1,6 @@
 # AppSec Stack Pack
 
-A collection of 30 defensive security audit skills for Claude, organized by technology stack. Designed to complement `saas-security-pack` (which is organized by audit domain).
+A collection of 31 defensive security audit skills for Claude, organized by technology stack. Designed to complement `saas-security-pack` (which is organized by audit domain).
 
 The two packs answer different questions:
 
@@ -19,7 +19,7 @@ Each SKILL.md has triggers tuned to its stack. Claude routes based on:
 
 For a project that uses Next.js + Prisma + Clerk + GraphQL on Vercel, Claude will activate `nextjs-security`, `prisma-orm-security`, `clerk-security`, `graphql-security`, and `vercel-platform-security` — five skills running in parallel.
 
-## The 30 skills
+## The 31 skills
 
 ### Frontend (7)
 
@@ -91,6 +91,12 @@ For a project that uses Next.js + Prisma + Clerk + GraphQL on Vercel, Claude wil
 | `cloudflare-workers-security` | Workers, `wrangler.toml`, KV, D1, R2, Durable Objects |
 | `aws-lambda-security` | Lambda, IAM, Function URLs, layers, VPC config |
 
+### Web platform (1)
+
+| Skill | Triggers on |
+|-------|-------------|
+| `web-platform-security` | CORS, CSP, COOP/COEP/CORP, `SameSite` cookies, `__Host-` prefix, CHIPS Partitioned, Permissions-Policy, SRI, Trusted Types, HSTS, `postMessage` origin, iframe sandbox, Private Network Access, WebAuthn / Passkeys, FedCM |
+
 ## Skill format
 
 Each skill follows the same five-phase workflow (see `_shared/audit-workflow.md`):
@@ -101,7 +107,7 @@ Each skill follows the same five-phase workflow (see `_shared/audit-workflow.md`
 4. **Triage** — sort by severity
 5. **Report** — emit findings using the shared schema (see `_shared/findings-schema.md`)
 
-Finding ID prefixes are locked in `_shared/findings-schema.md` so multi-skill audits produce non-colliding IDs across all 30 skills.
+Finding ID prefixes are locked in `_shared/findings-schema.md` so multi-skill audits produce non-colliding IDs across all 31 skills.
 
 ## Installation
 

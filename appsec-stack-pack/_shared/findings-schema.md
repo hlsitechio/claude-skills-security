@@ -1,6 +1,6 @@
 # Shared Findings Schema — AppSec Stack Pack
 
-All skills in this pack emit findings in the same structure. See the companion `saas-security-pack` for the original schema; this file is the local copy with the prefix table for THIS pack's 30 skills.
+All skills in this pack emit findings in the same structure. See the companion `saas-security-pack` for the original schema; this file is the local copy with the prefix table for THIS pack's 31 skills.
 
 ## Severity rubric
 
@@ -122,6 +122,11 @@ All skills in this pack emit findings in the same structure. See the companion `
 | vercel-platform-security | VRC |
 | cloudflare-workers-security | CFW |
 | aws-lambda-security | AWL |
+
+### Web platform
+| Skill | Prefix |
+|-------|--------|
+| web-platform-security | WPS |
 
 ## Multi-skill audit pattern
 

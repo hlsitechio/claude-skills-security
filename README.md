@@ -1,17 +1,19 @@
 <p align="center">
-  <img src="docs/banner.png" alt="claude-skills-security — 39 Defensive Security Audit Skills for SaaS Apps" width="100%">
+  <img src="docs/banner.png" alt="claude-skills-security — 40 Defensive Security Audit Skills for SaaS Apps" width="100%">
 </p>
 
 # claude-skills-security
 
-A collection of **39 defensive security audit skills for Claude**, organized as two complementary packs.
+A collection of **40 defensive security audit skills for Claude**, organized as two complementary packs.
+
+> The banner image still shows "39" — it pre-dates the `web-platform-security` addition. Will refresh on next visual update.
 
 The packs answer different questions, and Claude picks skills from either (or both) based on what the user is asking:
 
 | Pack | Organized by | Activates when |
 |------|--------------|----------------|
 | **[saas-security-pack](./saas-security-pack)** (9 skills) | Audit domain | "Review my supply chain", "Audit our RLS", "Check tenant isolation", "Compliance review" |
-| **[appsec-stack-pack](./appsec-stack-pack)** (30 skills) | Technology stack | "Audit my Next.js app", "Review my Prisma queries", "Is my Clerk webhook safe", "Cloudflare Workers security" |
+| **[appsec-stack-pack](./appsec-stack-pack)** (31 skills) | Technology stack | "Audit my Next.js app", "Review my Prisma queries", "Is my Clerk webhook safe", "Cloudflare Workers security", "Review my CORS / CSP / cookies" |
 
 For a typical "audit my SaaS" request on a modern stack, both packs activate skills that work together — domain-keyed audits (RLS, supply chain) running alongside stack-keyed audits (Next.js, Prisma, Clerk).
 
@@ -30,7 +32,7 @@ Claude activates:
 
 Seven skills run, each emitting findings with its own prefix. The combined report is severity-sorted and de-duplicated.
 
-## The 39 skills
+## The 40 skills
 
 ### saas-security-pack — domain-keyed (9)
 
@@ -46,7 +48,7 @@ Seven skills run, each emitting findings with its own prefix. The combined repor
 | `iac-container-security` | IACS | Terraform, Dockerfile, Kubernetes manifests, image scanning |
 | `saas-compliance-audit` | SCMP | SOC 2, GDPR/CCPA, evidence collection, audit logs |
 
-### appsec-stack-pack — tech-keyed (30)
+### appsec-stack-pack — tech-keyed (31)
 
 **Frontend (7)**: react · nextjs · vite · vue-nuxt · svelte-sveltekit · angular · electron
 
@@ -63,6 +65,8 @@ Seven skills run, each emitting findings with its own prefix. The combined repor
 **Auth providers (2)**: clerk · nextauth
 
 **Edge/Cloud (3)**: vercel-platform · cloudflare-workers · aws-lambda
+
+**Web platform (1)**: web-platform-security — CORS, CSP, COOP/COEP/CORP, modern cookies (SameSite, `__Host-`, CHIPS), Permissions-Policy, SRI, Trusted Types, HSTS, `postMessage`, iframe sandbox, Private Network Access, WebAuthn / Passkeys, FedCM. Sourced from web.dev / developer.chrome.com.
 
 See [`appsec-stack-pack/README.md`](./appsec-stack-pack/README.md) for the full table with triggers.
 

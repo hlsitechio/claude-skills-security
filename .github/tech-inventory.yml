@@ -337,6 +337,125 @@ technologies:
       OAuth 2.1 (draft) makes PKCE mandatory for ALL clients, not just
       public. Worth tracking when 2.1 is finalized.
 
+  # ───────── Web platform standards (evolving) ─────────
+
+  - id: csp-spec
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://www.w3.org/TR/CSP3/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+      - appsec-stack-pack/web-platform-security/references/csp-and-trusted-types.md
+      - saas-security-pack/saas-frontend-hardening/references/csp-design.md
+    current_pin: "CSP Level 3 (strict CSP recommended)"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      CSP Level 4 features (e.g., `trusted-types` integration tweaks,
+      new directives) land in browsers via origin trials. Track
+      web.dev articles and the Chrome Platform Status feed.
+
+  - id: trusted-types
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://www.w3.org/TR/trusted-types/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+      - appsec-stack-pack/web-platform-security/references/csp-and-trusted-types.md
+    current_pin: "Chromium-only; Firefox / Safari status: behind flag / in review"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Cross-browser support determines when guidance can recommend
+      Trusted Types as a hard requirement vs Chromium-only hardening.
+      Check Safari Tech Preview and Firefox release notes.
+
+  - id: private-network-access
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://wicg.github.io/private-network-access/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+      - appsec-stack-pack/web-platform-security/references/cors-and-pna.md
+    current_pin: "PNA preflight — Chrome staged enforcement"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Chrome rollout has been multi-phase (warning → enforcement in
+      contexts → broader enforcement). Date of full enforcement
+      affects when LAN-targeted apps must add the
+      `Access-Control-Allow-Private-Network: true` response header.
+      Source of truth: chromestatus.com entry for PNA.
+
+  - id: chips-partitioned-cookies
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://developers.google.com/privacy-sandbox/cookies/chips
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+      - appsec-stack-pack/web-platform-security/references/cookies-modern.md
+    current_pin: "CHIPS GA in Chromium; Firefox / Safari status varies"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      The Partitioned attribute graduated from origin trial. Embedded
+      SaaS guidance now recommends Partitioned + SameSite=None +
+      Secure. Third-party cookie phase-out timeline in Chrome has
+      shifted multiple times — track Privacy Sandbox status posts.
+
+  - id: coop-coep
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://web.dev/articles/coop-coep
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+      - appsec-stack-pack/web-platform-security/references/cross-origin-isolation.md
+    current_pin: "COOP same-origin + COEP require-corp / credentialless"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      `credentialless` graduated from origin trial. Reporting endpoint
+      semantics shifted (`Reporting-Endpoints` vs older `Report-To`).
+      Cross-origin isolation gate list (`SharedArrayBuffer`,
+      high-res timers) may expand.
+
+  - id: fedcm
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://fedidcg.github.io/FedCM/
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+    current_pin: "FedCM Working Draft; Chromium-shipping, others in evaluation"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      FedCM API surface (`navigator.credentials.get({identity})`) has
+      been stable in Chromium for two+ years but the spec is still
+      evolving (active mode, multi-IDP, mediation modes). Skills
+      should track which patterns are GA vs experimental.
+
+  - id: webauthn-passkeys
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://www.w3.org/TR/webauthn-3/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/web-platform-security/SKILL.md
+    current_pin: "WebAuthn Level 3; Passkeys (discoverable creds + UV)"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Cross-platform passkey sync (iCloud Keychain, Google Password
+      Manager, 1Password, Bitwarden) capability changes affect what
+      "recommended" looks like. Conditional UI (passkey autofill)
+      browser support is staged.
+
 # ───────── Inventory metadata ─────────
 
 inventory:
