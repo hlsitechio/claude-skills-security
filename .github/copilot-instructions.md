@@ -1,0 +1,125 @@
+# Copilot Instructions
+
+These instructions ground GitHub Copilot (Coding Agent, Workspace, Chat) when working in this repository. Read this file in full before producing any code, review, or PR.
+
+## What this repo is
+
+A monorepo of **defensive security audit skills for Claude**, split into two packs:
+
+- `saas-security-pack/` — 9 audit-domain skills (RLS, supply chain, tenant isolation, code review, API, frontend, IaC, compliance, GitHub repo hardening). Each emits findings with a 3-5 letter prefix (`SUPA-`, `GHSC-`, `STI-`, etc.).
+- `appsec-stack-pack/` — 30 technology-stack skills (Next.js, Prisma, Clerk, Django, FastAPI, Go, Rails, Laravel, Spring Boot, .NET, GraphQL, tRPC, WebSocket, Redis, Vercel, Cloudflare Workers, AWS Lambda, …). Same finding-prefix model.
+
+A typical real-world audit activates 5+ skills from both packs concurrently. Finding IDs must not collide across packs.
+
+## Hard constraints
+
+- **Defensive only.** Reject any change that adds offensive content: exploit code, weaponized payloads, bypass techniques presented as attack chains, automated pentest tooling. The audit framing is *find-and-fix*, not *exploit*.
+- **Every check ships with a remediation.** A SKILL.md check that says "look for X" without "here's how to fix X" is incomplete.
+- **No secrets, no real customer data** in any file. Examples must use placeholders (`yourorg`, `<sha>`, `xxxxx.example.com`).
+- **No new dependencies on proprietary tooling** unless the tool is already standard (Trivy, Checkov, Semgrep, CodeQL, etc.).
+- **Multi-stack by default.** Avoid making a skill single-language unless it inherently is (e.g., `prisma-orm-security` is TypeScript).
+
+## SKILL.md format (every skill)
+
+```
+<skill-name>/
+├── SKILL.md          # YAML frontmatter + 5-phase workflow body
+├── references/       # optional deep-dive companion docs
+│   └── *.md
+├── scripts/          # optional executables (read-only audit helpers)
+└── assets/           # optional templates the skill produces or uses
+```
+
+Required YAML frontmatter:
+
+```yaml
+---
+name: <kebab-case, must match folder name>
+description: <triggers — proper nouns, file signatures, common user phrasings; ~3-6 sentences>
+---
+```
+
+Required SKILL.md body sections, in order:
+
+1. Title + one-paragraph intent
+2. **When this skill applies** — explicit in-scope / out-of-scope
+3. **Workflow** — reference `../_shared/audit-workflow.md` + skill-specific notes per phase (1: Scope, 2: Inventory, 3: Detection, 4: Triage, 5: Report)
+4. **Detection checks** — numbered with the skill's ID prefix (e.g., `SUPA-RLS-1`)
+5. **Triage notes** — what counts as Critical for this skill
+6. **Outputs** — what artifacts the skill produces
+7. **References** — links to each `references/*.md`
+8. **Scripts / Assets** — if present
+
+## CI requirements
+
+`.github/workflows/validate-all.yml` runs on every push/PR and validates:
+
+- YAML frontmatter parses
+- `name:` matches folder name
+- Every `` `references/foo.md` `` mentioned in SKILL.md resolves to a real file
+- `_shared/findings-schema.md` and `_shared/audit-workflow.md` present in each pack
+
+Run locally before pushing:
+
+```bash
+python -c "
+import os, re, yaml, sys
+err=[]; n=0
+for pack in ['saas-security-pack', 'appsec-stack-pack']:
+    for root, dirs, files in os.walk(pack):
+        if any(x in root for x in ('_shared','scripts','.github','dist')): continue
+        if 'SKILL.md' not in files: continue
+        n+=1
+        p = os.path.join(root,'SKILL.md')
+        with open(p, encoding='utf-8') as f: c=f.read()
+        m=re.match(r'^---\n(.*?)\n---\n', c, re.DOTALL)
+        if not m: err.append(f'{p}: no frontmatter'); continue
+        meta=yaml.safe_load(m.group(1))
+        if meta.get('name')!=os.path.basename(root): err.append(f'{p}: name mismatch')
+        for rm in re.finditer(r'\`references/([^\`]+\.md)\`', c):
+            if not os.path.isfile(os.path.join(root,'references',rm.group(1))):
+                err.append(f'{p}: missing references/{rm.group(1)}')
+print(f'{n} skills, {len(err)} errors')
+for e in err: print(' -', e)
+sys.exit(1 if err else 0)
+"
+```
+
+Expected: `39 skills, 0 errors`. Any deviation blocks the PR.
+
+## Finding ID prefix registry
+
+Each pack maintains its prefix table in `<pack>/_shared/findings-schema.md`. When adding a new skill, propose a 3-5 char uppercase prefix and add it there. Do NOT reuse a prefix that exists in either pack.
+
+## What a daily / weekly review should produce
+
+Reviews open an issue using `.github/ISSUE_TEMPLATE/daily-skill-review.md`. The review must cover:
+
+1. **CI health** — last run status, flakiness, drift in validator output.
+2. **New skills or major changes** — quality of frontmatter triggers, reference completeness, finding IDs, defensive-only check.
+3. **Cross-skill consistency** — overlapping topics between packs (e.g., CSP appears in `saas-frontend-hardening` AND in stack-specific React/Vue/Svelte skills — should they cross-link?).
+4. **Triggering risk** — descriptions that are too narrow (won't activate when needed) or too broad (false-trigger on unrelated queries).
+5. **Drift between README claims and reality** — README says "39 skills"; if you add or remove one, the README, banner, and release notes must be updated in the same PR.
+6. **Recommendations** — bucketed as `ship now` (clear, low-risk), `discuss` (needs maintainer input), `defer` (not worth doing this cycle).
+
+Each finding in the review issue links to a file:line.
+
+## What to avoid in PRs
+
+- Renaming an existing skill folder (breaks finding-ID continuity and external installs).
+- Removing a check ID without documenting the rationale — finding IDs are referenced in external audit reports.
+- Adding "TODO" / "FIXME" comments to SKILL.md or references. If a check is incomplete, it shouldn't ship.
+- Mass formatting changes mixed with content changes. Split them: one PR for whitespace/line-wrap, separate PRs for content.
+- Marketing language. Tone is direct, imperative, technical.
+
+## Tone for new content
+
+- **Imperative** in checks ("Verify X", "Confirm Y"), not interrogative ("Is X verified?").
+- **Concrete** in remediations — paste-able SQL / code / config, not "follow vendor docs."
+- **No "must" / "should" / "MAY"** unless quoting an RFC. Use direct language: "X is checked," "X is required."
+
+## Communication style for review comments and PRs
+
+- Lead with the finding, then the evidence, then the fix.
+- One sentence of impact per finding (why does this matter?).
+- Don't hedge. If something is wrong, say it. If you're uncertain, say "low confidence" explicitly.
