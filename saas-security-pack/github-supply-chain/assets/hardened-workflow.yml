@@ -1,0 +1,111 @@
+# Hardened GitHub Actions workflow template
+#
+# Copy and adapt. Every line that says CHANGE-ME is a deliberate parameter you need to set.
+# Every pin must be replaced with a real SHA before use (see scripts/extract_action_pins.sh).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Default to no permissions; jobs opt in to what they need.
+permissions: {}
+
+# Cancel superseded runs to save runner time and avoid race conditions on deploys.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - name: Harden runner
+        # StepSecurity harden-runner: egress allow-list, file monitoring.
+        # In 'audit' mode first, switch to 'block' once endpoints are known.
+        uses: step-security/harden-runner@PLACEHOLDER-SHA  # v2.10.x
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@PLACEHOLDER-SHA  # v4.x
+        with:
+          persist-credentials: false   # don't leave credentials in .git/config
+          fetch-depth: 1               # shallow unless full history is needed
+
+      - name: Set up Node
+        uses: actions/setup-node@PLACEHOLDER-SHA  # v4.x
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install (no lifecycle scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        env:
+          # Pass user-controlled values through env, never inline.
+          CI: true
+        run: npm test
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # for comment-summary-in-pr
+    steps:
+      - uses: actions/checkout@PLACEHOLDER-SHA  # v4.x
+      - uses: actions/dependency-review-action@PLACEHOLDER-SHA  # v4.x
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+          # Tighten or loosen this list per your policy.
+          deny-licenses: AGPL-3.0, GPL-3.0
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@PLACEHOLDER-SHA  # v4.x
+      - uses: github/codeql-action/init@PLACEHOLDER-SHA  # v3.x
+        with:
+          languages: javascript   # CHANGE-ME
+          queries: security-extended
+      - uses: github/codeql-action/analyze@PLACEHOLDER-SHA  # v3.x
+
+  # Production deploy: gated by Environment with required reviewers.
+  # Uses OIDC, never long-lived cloud creds.
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, dependency-review, codeql]
+    runs-on: ubuntu-latest
+    environment: production   # CHANGE-ME: configure with required reviewers
+    permissions:
+      id-token: write           # for OIDC
+      contents: read
+    steps:
+      - uses: actions/checkout@PLACEHOLDER-SHA  # v4.x
+
+      # AWS example. Swap for google-github-actions/auth or azure/login as needed.
+      - name: Assume AWS role via OIDC
+        uses: aws-actions/configure-aws-credentials@PLACEHOLDER-SHA  # v4.x
+        with:
+          role-to-assume: arn:aws:iam::ACCOUNT_ID:role/github-actions-deploy   # CHANGE-ME
+          aws-region: us-east-1                                                # CHANGE-ME
+          # Optional but recommended: session name for CloudTrail correlation.
+          role-session-name: gha-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Deploy
+        run: ./deploy.sh

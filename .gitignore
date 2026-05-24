@@ -1,0 +1,30 @@
+# Build artifacts
+dist/
+*.zip
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
+
+# Local working files
+.env
+.env.local
+*.local
+
+# Python (validation scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Node (in case scripts use it)
+node_modules/
+
+# Logs
+*.log

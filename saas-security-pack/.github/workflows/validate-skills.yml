@@ -1,0 +1,104 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Validate every SKILL.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          ERRORS=0
+
+          for skill_md in */SKILL.md; do
+            skill_dir=$(dirname "$skill_md")
+            skill_name=$(basename "$skill_dir")
+            echo "Checking: $skill_dir"
+
+            # 1. YAML frontmatter present
+            if ! head -1 "$skill_md" | grep -q '^---$'; then
+              echo "  ❌ SKILL.md missing opening YAML frontmatter delimiter"
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+
+            # 2. Frontmatter has name and description
+            frontmatter=$(sed -n '/^---$/,/^---$/p' "$skill_md" | head -n -1 | tail -n +2)
+
+            if ! echo "$frontmatter" | grep -q '^name:'; then
+              echo "  ❌ missing 'name:' in frontmatter"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if ! echo "$frontmatter" | grep -q '^description:'; then
+              echo "  ❌ missing 'description:' in frontmatter"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # 3. Name matches folder name
+            name_value=$(echo "$frontmatter" | sed -n 's/^name:[[:space:]]*//p' | head -1 | tr -d '"' | tr -d "'")
+            if [[ "$name_value" != "$skill_name" ]]; then
+              echo "  ❌ frontmatter name '$name_value' doesn't match folder name '$skill_name'"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # 4. Description length (Anthropic recommends specific length)
+            desc_value=$(echo "$frontmatter" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+            desc_len=${#desc_value}
+            if [[ $desc_len -lt 50 ]]; then
+              echo "  ⚠  description very short ($desc_len chars) — may not trigger reliably"
+            fi
+            if [[ $desc_len -gt 1500 ]]; then
+              echo "  ⚠  description very long ($desc_len chars) — consider shortening"
+            fi
+
+            # 5. SKILL.md not absurdly long (Anthropic recommends <500 lines)
+            lines=$(wc -l < "$skill_md")
+            if [[ $lines -gt 600 ]]; then
+              echo "  ⚠  SKILL.md has $lines lines — consider moving content to references/"
+            fi
+
+            # 6. Referenced files exist
+            grep -oE 'references/[a-zA-Z0-9_-]+\.md' "$skill_md" | sort -u | while read ref; do
+              if [[ ! -f "$skill_dir/$ref" ]]; then
+                echo "  ❌ referenced file missing: $skill_dir/$ref"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+
+            echo "  ✓ ok"
+          done
+
+          if [[ $ERRORS -gt 0 ]]; then
+            echo ""
+            echo "❌ $ERRORS validation error(s)"
+            exit 1
+          fi
+          echo ""
+          echo "✓ all skills valid"
+
+      - name: Test packaging script
+        shell: bash
+        run: |
+          chmod +x scripts/package_skills.sh
+          ./scripts/package_skills.sh /tmp/dist
+          ls -la /tmp/dist
+          # Each zip should be > 1KB (sanity check it actually has content)
+          for z in /tmp/dist/*.zip; do
+            size=$(stat -c%s "$z")
+            if [[ $size -lt 1024 ]]; then
+              echo "❌ $z is suspiciously small ($size bytes)"
+              exit 1
+            fi
+          done

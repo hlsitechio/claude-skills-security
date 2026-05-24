@@ -1,0 +1,83 @@
+name: validate-all-skills
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pack: [saas-security-pack, appsec-stack-pack]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install deps
+        run: pip install pyyaml
+      
+      - name: Validate ${{ matrix.pack }}
+        working-directory: ${{ matrix.pack }}
+        run: |
+          python <<'EOF'
+          import os, re, sys, yaml
+          
+          errors = []
+          skills_count = 0
+          
+          for root, dirs, files in os.walk('.'):
+              if any(x in root for x in ('_shared', 'scripts', '.github', 'node_modules', 'dist')):
+                  continue
+              if 'SKILL.md' not in files:
+                  continue
+              
+              skills_count += 1
+              path = os.path.join(root, 'SKILL.md')
+              with open(path, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              
+              m = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+              if not m:
+                  errors.append(f'{path}: missing YAML frontmatter')
+                  continue
+              
+              try:
+                  meta = yaml.safe_load(m.group(1))
+              except yaml.YAMLError as e:
+                  errors.append(f'{path}: invalid YAML: {e}')
+                  continue
+              
+              for field in ('name', 'description'):
+                  if field not in meta or not meta[field]:
+                      errors.append(f'{path}: missing or empty `{field}`')
+              
+              folder_name = os.path.basename(root)
+              if meta.get('name') != folder_name:
+                  errors.append(f'{path}: name `{meta.get("name")}` != folder `{folder_name}`')
+              
+              for ref_match in re.finditer(r'`references/([^`]+\.md)`', content):
+                  ref_path = os.path.join(root, 'references', ref_match.group(1))
+                  if not os.path.isfile(ref_path):
+                      errors.append(f'{path}: references non-existent `references/{ref_match.group(1)}`')
+          
+          print(f'Validated {skills_count} skills in ${{ matrix.pack }}')
+          if errors:
+              print(f'\n{len(errors)} error(s):')
+              for e in errors:
+                  print(f'  - {e}')
+              sys.exit(1)
+          print('All skills valid.')
+          EOF
+      
+      - name: Check _shared
+        working-directory: ${{ matrix.pack }}
+        run: |
+          test -f _shared/findings-schema.md
+          test -f _shared/audit-workflow.md
