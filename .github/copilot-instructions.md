@@ -24,17 +24,48 @@ These skills are security guidance. When upstream tech (Node, Next, Django, base
 
 **For every scheduled review:**
 
-1. Load [`.github/tech-inventory.yml`](./tech-inventory.yml).
-2. For each entry, fetch the latest from `source` (see "Upstream lookups" below).
-3. Compare against `current_pin` and against the actual version mentioned in each `pinned_in` file.
-4. Classify each result:
-   - **CRITICAL** — pinned version is past EOL, or has known unpatched CVEs.
-   - **HIGH** — pinned version is ≥2 majors behind current, OR new major changed security-relevant defaults that the skill doesn't cover.
+1. Load [`.github/tech-inventory.yml`](./tech-inventory.yml) (schema v3 — see field reference below).
+2. For each entry, fetch the actual current state from `upstream.url` (see "Upstream lookups" below).
+3. Compare against `current_pin` (what skills say) AND against `upstream_latest.version` (what the inventory THOUGHT was current at `upstream_latest.as_of`).
+4. Two drift dimensions to report:
+   - **Skill drift**: `current_pin` lags real upstream → propose file:line edits in the skills.
+   - **Inventory drift**: `upstream_latest.version` (with `as_of` ≥ a few weeks old) no longer matches real upstream → propose updates to `upstream_latest.version`, `upstream_latest.as_of`, and `sources` (with fresh `accessed` dates).
+5. Classify each result:
+   - **CRITICAL** — pinned version is past EOL, or has known unpatched CVEs (CVSS ≥9.0).
+   - **HIGH** — pinned version is ≥2 majors behind current, OR new major changed security-relevant defaults the skill doesn't cover.
    - **MEDIUM** — 1 major behind, or behind on a CVE-backport patch.
    - **LOW** — behind on patch only, no known CVE.
    - **INFO** — matches upstream / no change.
-5. For each non-INFO finding, propose the specific edit: `file:line — old → new — rationale`.
-6. Update `last_verified` in the inventory entries you checked (in the same review-output PR if one is opened).
+6. For each non-INFO finding, propose the specific edit: `file:line — old → new — rationale`.
+7. **Always update `last_verified` and `upstream_latest.as_of`** to today's ISO date in the inventory entries you checked, and refresh each `source` entry's `accessed` date.
+8. **Add new sources** when the original 404s or returns a soft error — link rot is treated as a finding, not silently tolerated.
+
+**Inventory schema v3 field reference:**
+
+```yaml
+- id: <kebab>
+  kind: runtime|base_image|action|framework|library|tool|protocol
+  upstream:                              # how to look up latest
+    type: github_releases|npm|pypi|docker_hub|official_endpoint
+    url: <upstream URL>
+    track: lts|latest|stable
+  pinned_in:                             # files in this repo that mention this tech
+    - <relative file path>
+  current_pin: <string>                  # what the skill content actually says
+  upstream_latest:                       # what's actually current upstream
+    version: <string>
+    as_of: <ISO date>                    # MUST be refreshed when inventory is reviewed
+  drift_severity: critical|high|medium|low  # omit if matches upstream
+  drift_risk: |                          # prose: why drift matters
+    ...
+  sources:                               # citations — every claim must be verifiable
+    - url: <URL>
+      title: <human title>
+      accessed: <ISO date>               # MUST be refreshed when source is re-verified
+  last_verified: <ISO date>              # MUST be refreshed at end of every review
+```
+
+Every entry MUST have `upstream_latest`, `sources` (non-empty), and `last_verified`. The validator in `.github/workflows/validate-all.yml` will refuse PRs that add an entry missing these fields.
 
 **Upstream lookups (preferred, in order):**
 

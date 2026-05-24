@@ -81,3 +81,99 @@ jobs:
         run: |
           test -f _shared/findings-schema.md
           test -f _shared/audit-workflow.md
+
+  validate-inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install pyyaml
+
+      - name: Validate .github/tech-inventory.yml schema v3
+        run: |
+          python <<'EOF'
+          import os, sys, yaml, re
+          from datetime import date
+
+          path = '.github/tech-inventory.yml'
+          if not os.path.isfile(path):
+              print(f'{path} not found — skipping inventory validation')
+              sys.exit(0)
+
+          with open(path, encoding='utf-8') as f:
+              data = yaml.safe_load(f)
+
+          errors = []
+          warnings = []
+          techs = data.get('technologies') or []
+          inv = data.get('inventory') or {}
+
+          if inv.get('schema_version') != 3:
+              warnings.append(f'inventory.schema_version is {inv.get("schema_version")} — expected 3')
+
+          ISO_DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+
+          for t in techs:
+              tid = t.get('id', '<no id>')
+              for required in ('id', 'kind', 'upstream', 'upstream_latest', 'sources', 'last_verified', 'drift_risk'):
+                  if required not in t:
+                      errors.append(f'{tid}: missing field `{required}`')
+
+              up = t.get('upstream') or {}
+              for k in ('type', 'url'):
+                  if not up.get(k):
+                      errors.append(f'{tid}: upstream.{k} missing or empty')
+
+              ul = t.get('upstream_latest') or {}
+              if not ul.get('version'):
+                  errors.append(f'{tid}: upstream_latest.version missing or empty')
+              if not ul.get('as_of'):
+                  errors.append(f'{tid}: upstream_latest.as_of missing')
+              elif not ISO_DATE.match(str(ul['as_of'])):
+                  errors.append(f'{tid}: upstream_latest.as_of `{ul["as_of"]}` not ISO YYYY-MM-DD')
+
+              sources = t.get('sources') or []
+              if not sources:
+                  errors.append(f'{tid}: sources is empty — every claim must have a citation')
+              for i, s in enumerate(sources):
+                  if not isinstance(s, dict):
+                      errors.append(f'{tid}: sources[{i}] is not a mapping')
+                      continue
+                  for k in ('url', 'title', 'accessed'):
+                      if not s.get(k):
+                          errors.append(f'{tid}: sources[{i}].{k} missing or empty')
+                  if s.get('accessed') and not ISO_DATE.match(str(s['accessed'])):
+                      errors.append(f'{tid}: sources[{i}].accessed `{s["accessed"]}` not ISO YYYY-MM-DD')
+
+              lv = t.get('last_verified')
+              if lv and not ISO_DATE.match(str(lv)):
+                  errors.append(f'{tid}: last_verified `{lv}` not ISO YYYY-MM-DD')
+
+              valid_kinds = {'runtime', 'base_image', 'action', 'framework', 'library', 'tool', 'protocol'}
+              if t.get('kind') not in valid_kinds:
+                  errors.append(f'{tid}: kind `{t.get("kind")}` not in {valid_kinds}')
+
+              valid_sev = {'critical', 'high', 'medium', 'low'}
+              if 'drift_severity' in t and t['drift_severity'] not in valid_sev:
+                  errors.append(f'{tid}: drift_severity `{t["drift_severity"]}` not in {valid_sev}')
+
+              for p in (t.get('pinned_in') or []):
+                  if not os.path.isfile(p):
+                      warnings.append(f'{tid}: pinned_in path `{p}` does not exist')
+
+          print(f'Inventory: {len(techs)} entries, schema v{inv.get("schema_version")}')
+          print(f'Errors: {len(errors)}, warnings: {len(warnings)}')
+          for w in warnings:
+              print(f'  WARN: {w}')
+          for e in errors:
+              print(f'  ERR:  {e}')
+          if errors:
+              sys.exit(1)
+          print('Inventory valid.')
+          EOF

@@ -1,38 +1,28 @@
 # Tech Inventory — version drift surface for daily review
 #
-# This file is the canonical list of external technologies whose version
-# appears in skill content. The daily review (see
-# .github/ISSUE_TEMPLATE/daily-skill-review.md and
-# .github/copilot-instructions.md) compares `current_pin` against the
-# upstream `source` and reports drift.
+# Schema v3 (2026-05-24): every entry now carries a concrete
+# `upstream_latest` version with `as_of` date AND a `sources` array of
+# citation URLs with access dates. Daily reviews compare `current_pin`
+# (what the skills mention) against `upstream_latest` and produce drift
+# findings. The sources array is the verifiable provenance — auditors
+# and reviewers can re-check the URL.
 #
-# Drift matters because the skills are security guidance. A skill that
-# pins to Node 18 in May 2026 is not just stale — it pre-dates CVE fixes
-# in undici, HTTP/2, OpenSSL backports, and may recommend mitigations
-# (e.g., specific TLS modes, header handling) that newer runtimes have
-# changed or hardened differently.
-#
-# Schema:
-#   id            short identifier (kebab-case)
-#   kind          runtime | base_image | action | framework | library | tool | protocol
-#   source        how to fetch "what's current" — see "Source types" below
-#   pinned_in     file paths where this tech appears with a concrete version
-#   current_pin   version / tag / SHA mentioned in pinned_in
-#   last_verified ISO date this entry was checked against upstream
-#   drift_risk    what specifically becomes insecure if guidance lags
-#
-# Source types:
-#   github_releases   { repo, track: lts|latest|stable }
-#   npm               { package, track: latest|lts }
-#   pypi              { package, track: latest|stable }
-#   docker_hub        { image, track: lts|latest }
-#   official_endpoint { url }   (for runtimes with their own release feed)
-#
-# Updating this file:
-#   - When a skill is edited to bump a version, also bump current_pin
-#     and last_verified here.
-#   - When a new tech is referenced, add an entry.
-#   - The daily review may propose entries to add (under "Inventory gaps").
+# Per-entry fields:
+#   id               short identifier (kebab-case)
+#   kind             runtime | base_image | action | framework | library | tool | protocol
+#   upstream:        how to fetch "what's current"
+#     type           github_releases | npm | pypi | docker_hub | official_endpoint
+#     url            full upstream URL
+#     track          lts | latest | stable
+#   pinned_in        file paths in this repo where this tech is mentioned with a concrete version
+#   current_pin      version / tag / SHA quoted in skill content (informational)
+#   upstream_latest:
+#     version        the actual latest stable / LTS / patched version
+#     as_of          ISO date this value was last researched
+#   drift_severity   critical | high | medium | low | (omitted if on-latest)
+#   drift_risk       prose: what specifically becomes insecure if guidance lags
+#   sources          array of { url, title, accessed } citation entries
+#   last_verified    ISO date this entry was last reviewed end-to-end
 
 technologies:
 
@@ -40,289 +30,1404 @@ technologies:
 
   - id: nodejs-runtime
     kind: runtime
-    source:
+    upstream:
       type: official_endpoint
       url: https://nodejs.org/dist/index.json
       track: lts
     pinned_in:
       - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
       - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
-    current_pin: "20.11.1 (STALE — Node 22 LTS active; bump to 22.x or latest 20.x patch)"
-    last_verified: "2026-05-23"
+    current_pin: "20.11.1 in examples"
+    upstream_latest:
+      version: "22.x active LTS; 20.x maintenance (latest 20.20.x)"
+      as_of: "2026-05-24"
     drift_severity: high
     drift_risk: |
-      Node 20 entered maintenance in April 2026. Node 22 is active LTS.
-      Patch releases in the 20.x line continue to ship CVE fixes for
-      undici, HTTP/2, OpenSSL backports — even staying on 20.x means
-      tracking the latest patch. Guidance recommending Node 18 or
-      earlier is past EOL. Example pin `20.11.1` is ~18 months stale.
+      Node 20 entered maintenance April 2026. Node 22 is active LTS.
+      Patch releases continue to ship CVE fixes for undici, HTTP/2,
+      OpenSSL backports. Example pin `20.11.1` is ~18 months stale.
+    sources:
+      - url: https://nodejs.org/en/about/previous-releases
+        title: "Node.js release schedule"
+        accessed: "2026-05-24"
+      - url: https://github.com/nodejs/Release
+        title: "Node.js Release working group"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: python-runtime
     kind: runtime
-    source:
+    upstream:
       type: official_endpoint
-      url: https://www.python.org/api/v2/downloads/release/
+      url: https://www.python.org/downloads/
+      track: stable
+    pinned_in: []
+    current_pin: null
+    upstream_latest:
+      version: "3.13.x stable; 3.12 active maintenance; 3.11 security only"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Python 3.8 EOL Oct 2024; 3.9 EOL Oct 2025; 3.10 EOL Oct 2026.
+      Skills should not recommend SAST baselines for runtimes past EOL.
+    sources:
+      - url: https://devguide.python.org/versions/
+        title: "Python developer guide — versions"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: go-runtime
+    kind: runtime
+    upstream:
+      type: official_endpoint
+      url: https://go.dev/doc/devel/release
       track: stable
     pinned_in:
-      # Add when a Python pin appears in any SKILL.md or reference
-      []
-    current_pin: null
-    last_verified: "2026-05-23"
+      - appsec-stack-pack/go-security/SKILL.md
+    current_pin: "implied 1.18+ in examples"
+    upstream_latest:
+      version: "1.25.x (Aug 2025); 1.23.8 / 1.24.2 for CVE-2025-22871 patches"
+      as_of: "2026-05-24"
+    drift_severity: medium
     drift_risk: |
-      Python 3.8 EOL October 2024; 3.9 EOL October 2025. Skills should
-      not recommend SAST baselines for runtimes past EOL — CVE feeds
-      no longer cover them.
+      CVE-2025-22871 net/http chunked LF request smuggling — patched
+      Go 1.23.8 / 1.24.2. Go 1.22+ ServeMux method/wildcard routing
+      changes 405 semantics. FIPS 140-3 native mode
+      (GODEBUG=fips140=on) replaces GOEXPERIMENT=boringcrypto in 1.24+.
+    sources:
+      - url: https://go.dev/blog/routing-enhancements
+        title: "Go 1.22 ServeMux routing enhancements"
+        accessed: "2026-05-24"
+      - url: https://www.wiz.io/vulnerability-database/cve/cve-2025-22871
+        title: "CVE-2025-22871 — Wiz vulnerability database"
+        accessed: "2026-05-24"
+      - url: https://go.dev/doc/security/fips140
+        title: "Go FIPS 140-3 native mode"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: dotnet-runtime
+    kind: runtime
+    upstream:
+      type: github_releases
+      url: https://github.com/dotnet/core/releases
+      track: lts
+    pinned_in:
+      - appsec-stack-pack/dotnet-aspnetcore-security/SKILL.md
+    current_pin: "implied .NET 6/7/8/9 (no concrete pin)"
+    upstream_latest:
+      version: ".NET 10 GA; .NET 9 STS; .NET 8 LTS. CVE-2025-55315 patched in 8.0.21 / 9.0.10 / 10.0-rc.2; CVE-2026-40372 patched .NET 10.0.7"
+      as_of: "2026-05-24"
+    drift_severity: critical
+    drift_risk: |
+      CVE-2025-55315 Kestrel request smuggling (CVSS 9.9 — Microsoft's
+      highest-ever score). CVE-2026-40372 ASP.NET Core DataProtection
+      HMAC tag computed over wrong payload slice → forgeable auth
+      cookies, antiforgery tokens, OIDC state.
+    sources:
+      - url: https://www.microsoft.com/en-us/msrc/blog/2025/10/understanding-cve-2025-55315
+        title: "Understanding CVE-2025-55315 — Microsoft Security Response Center"
+        accessed: "2026-05-24"
+      - url: https://andrewlock.net/understanding-the-worst-dotnet-vulnerability-request-smuggling-and-cve-2025-55315/
+        title: "Andrew Lock — Understanding the worst .NET vulnerability"
+        accessed: "2026-05-24"
+      - url: https://startdebugging.net/2026/04/dotnet-10-0-7-oob-cve-2026-40372-dataprotection/
+        title: ".NET 10.0.7 out-of-band CVE-2026-40372 DataProtection"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   # ───────── Base images ─────────
 
   - id: distroless-nodejs
     kind: base_image
-    source:
+    upstream:
       type: github_releases
-      repo: GoogleContainerTools/distroless
+      url: https://github.com/GoogleContainerTools/distroless/releases
       track: latest
     pinned_in:
       - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
     current_pin: "gcr.io/distroless/nodejs20-debian12:nonroot"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "nodejs22-debian12 published; nodejs20-debian12 still maintained on debian12 security feed"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      The `nodejs20` tag rebuilds with current 20.x patch; the `debian12`
-      base is rebuilt on Debian security advisories. If a Debian 13
-      variant becomes the recommended track, this pin should follow.
+      The `nodejs20` tag rebuilds with current 20.x patch; `debian12`
+      base rebuilds on Debian security advisories. Track when nodejs22
+      becomes the recommended default.
+    sources:
+      - url: https://github.com/GoogleContainerTools/distroless
+        title: "Google distroless images"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: alpine-base
     kind: base_image
-    source:
+    upstream:
       type: docker_hub
-      image: alpine
+      url: https://hub.docker.com/_/alpine
       track: stable
     pinned_in:
       - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
-    current_pin: "alpine:3.19 (EOL — bump to 3.21 or 3.22)"
-    last_verified: "2026-05-23"
+    current_pin: "alpine:3.19 (EOL)"
+    upstream_latest:
+      version: "3.22.x current stable; 3.21 also supported; 3.20 / 3.19 EOL"
+      as_of: "2026-05-24"
     drift_severity: high
     drift_risk: |
-      Alpine 3.19 reached end-of-support November 2025. 3.21 / 3.22
-      are current. Old Alpine ships old musl, old apk packages,
-      unpatched CVEs in busybox.
+      Alpine 3.19 reached end-of-support November 2025. Old Alpine
+      ships old musl, old apk packages, unpatched CVEs in busybox.
+    sources:
+      - url: https://alpinelinux.org/releases/
+        title: "Alpine Linux releases"
+        accessed: "2026-05-24"
+      - url: https://hub.docker.com/_/alpine
+        title: "Alpine official Docker image"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: ubuntu-runner
     kind: base_image
-    source:
+    upstream:
       type: docker_hub
-      image: ubuntu
+      url: https://hub.docker.com/_/ubuntu
       track: lts
     pinned_in:
       - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
-    current_pin: "ubuntu-latest (24.04)"
-    last_verified: "2026-05-23"
+    current_pin: "ubuntu-latest in GitHub Actions"
+    upstream_latest:
+      version: "GitHub Actions ubuntu-latest = Ubuntu 24.04; ubuntu-22.04 still available"
+      as_of: "2026-05-24"
     drift_risk: |
-      `runs-on: ubuntu-latest` follows GitHub's rollout — was 22.04,
-      migrated to 24.04 during 2024. Guidance should not pin to
-      `ubuntu-22.04` explicitly without reason.
+      `runs-on: ubuntu-latest` follows GitHub's rollout. Guidance
+      should not pin to `ubuntu-22.04` explicitly without reason.
+    sources:
+      - url: https://github.com/actions/runner-images
+        title: "GitHub Actions runner images"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   # ───────── GitHub Actions ─────────
 
   - id: actions-checkout
     kind: action
-    source:
+    upstream:
       type: github_releases
-      repo: actions/checkout
+      url: https://github.com/actions/checkout/releases
       track: latest
     pinned_in:
       - saas-security-pack/github-supply-chain/references/actions-hardening.md
       - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
       - .github/workflows/validate-all.yml
-    current_pin: "11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2"
-    last_verified: "2026-05-23"
+    current_pin: "11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2"
+    upstream_latest:
+      version: "v4.2.2 (latest stable as of 2026-05-24)"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
       Action SHAs are the pin format we teach. When upstream releases
-      a new minor/patch (security fix in checkout itself, dependency
-      bump), the example SHA in our hardened-workflow.yml goes stale.
-      Stale examples teach users to copy outdated SHAs.
+      a new minor/patch, the example SHA goes stale. Stale examples
+      teach users to copy outdated SHAs.
+    sources:
+      - url: https://github.com/actions/checkout/releases
+        title: "actions/checkout releases"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: actions-setup-node
     kind: action
-    source:
+    upstream:
       type: github_releases
-      repo: actions/setup-node
+      url: https://github.com/actions/setup-node/releases
       track: latest
     pinned_in:
       - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
-    current_pin: "PLACEHOLDER-SHA  # v4.x"
-    last_verified: "2026-05-23"
+    current_pin: "PLACEHOLDER-SHA # v4.x"
+    upstream_latest:
+      version: "v4.x current stable"
+      as_of: "2026-05-24"
     drift_risk: |
-      Placeholder is fine in a template, but a comment with the latest
-      real major (v4.x) needs to keep up. v5 release would invalidate
-      the comment.
+      Placeholder is fine in a template; comment with the latest real
+      major (v4.x) needs to keep up. v5 release would invalidate it.
+    sources:
+      - url: https://github.com/actions/setup-node/releases
+        title: "actions/setup-node releases"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: actions-dependency-review
     kind: action
-    source:
+    upstream:
       type: github_releases
-      repo: actions/dependency-review-action
+      url: https://github.com/actions/dependency-review-action/releases
       track: latest
     pinned_in:
       - saas-security-pack/github-supply-chain/references/dependency-review.md
       - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
     current_pin: "v4.x"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "v4.x current; v5 release would change deny-licenses semantics"
+      as_of: "2026-05-24"
     drift_risk: |
       Severity thresholds and license-deny list semantics have changed
       across major versions. Pinning to a major + tracking minors is
       the right pattern.
+    sources:
+      - url: https://github.com/actions/dependency-review-action
+        title: "actions/dependency-review-action"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: github-codeql-action
     kind: action
-    source:
+    upstream:
       type: github_releases
-      repo: github/codeql-action
+      url: https://github.com/github/codeql-action/releases
       track: latest
     pinned_in:
       - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
     current_pin: "v3.x"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "v3.x current"
+      as_of: "2026-05-24"
     drift_risk: |
-      Query suite names (`security-extended`, `security-and-quality`)
+      Query suite names (security-extended, security-and-quality)
       have changed across CodeQL versions. Old guidance can refer to
       removed suites.
+    sources:
+      - url: https://github.com/github/codeql-action
+        title: "github/codeql-action"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
-  # ───────── Frameworks ─────────
-
-  - id: nextjs-framework
-    kind: framework
-    source:
-      type: npm
-      package: next
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/nextjs-security/SKILL.md
-      - appsec-stack-pack/nextjs-security/references/app-router-patterns.md
-    current_pin: "14 (STALE — bump floor to 15.5.18 / 16.2.6 for May 2026 patch wave)"
-    last_verified: "2026-05-23"
-    drift_severity: critical
-    drift_risk: |
-      May 2026 patch wave landed 13 CVEs (cache poisoning, XSS, SSRF,
-      DoS); React2Shell RCE through Next 15.4.8/15.5.7/16.0.7 fixes.
-      CVE-2025-29927 middleware bypass affects pre-15.2.3. CVE-2025-49826
-      cache poisoning (204), CVE-2025-59471 `/_next/image` 4GB OOM,
-      GHSA-c4j6-fc7j-m34r WebSocket-upgrade SSRF, CVE-2025-66478 Server
-      Action Flight RCE. Pre-15.x guidance is materially out of date.
-
-  - id: django-framework
-    kind: framework
-    source:
-      type: pypi
-      package: django
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/django-security/SKILL.md
-    current_pin: "4 (STALE — 4.2 LTS EOL Apr 2026 today; bump to 5.2 LTS)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      Django 4.2 LTS reaches EOL April 2026 (today). 5.2 LTS is the
-      current LTS (supported to April 2028). Django 5.1 added
-      `LoginRequiredMiddleware` (default-deny inversion) — guidance
-      not covering `@login_not_required` audits misses a major control.
-      Feb 2026 SQLi cluster (CVE-2024-53908) not in current SKILL.
-      Composite primary keys (5.2) change `get_object_or_404(pk=...)`
-      authz patterns.
-
-  - id: fastapi-framework
-    kind: framework
-    source:
-      type: pypi
-      package: fastapi
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/fastapi-security/SKILL.md
-    current_pin: null
-    last_verified: "2026-05-23"
-    drift_risk: |
-      FastAPI 0.110+ changed dependency-injection caching semantics
-      relevant to per-request auth. Pydantic v2 (default in recent
-      FastAPI) changed validation error formats — skills with example
-      error responses may show v1 shapes.
+  # ───────── Frontend frameworks ─────────
 
   - id: react-framework
     kind: framework
-    source:
+    upstream:
       type: npm
-      package: react
+      url: https://www.npmjs.com/package/react
       track: latest
     pinned_in:
       - appsec-stack-pack/react-security/SKILL.md
       - appsec-stack-pack/react-security/references/jsx-xss-sinks.md
-    current_pin: "19.2.6 (LATEST — but RSC CVE cluster Dec 2025 requires 19.0.4+/19.1.5+/19.2.4+)"
-    last_verified: "2026-05-23"
+    current_pin: "16/17/18/19 generic in skill"
+    upstream_latest:
+      version: "19.2.6 (Oct 2025 + patch); RSC CVE cluster requires 19.0.4 / 19.1.5 / 19.2.4 minimum"
+      as_of: "2026-05-24"
     drift_severity: critical
     drift_risk: |
       December 2025 React Server Components CVE cluster — CVE-2025-55182
       RCE (CVSS 10.0), CVE-2025-55183 source exposure, CVE-2025-55184,
-      CVE-2025-67779, CVE-2026-23864. Patched in 19.0.4 / 19.1.5 / 19.2.4.
-      React 19.2 introduced `<Activity>` (hidden mode unmounts effects)
-      with subtle implications for components holding secrets.
-      `experimental_taintObjectReference` / `experimental_taintUniqueValue`
-      are the canonical mitigation for prop-leak class.
+      CVE-2025-67779, CVE-2026-23864. React 19.2 `<Activity>` has
+      subtle implications for components holding secrets. Taint APIs
+      (`experimental_taintObjectReference`, `experimental_taintUniqueValue`)
+      are the canonical prop-leak mitigation.
+    sources:
+      - url: https://react.dev/blog/2025/12/03/critical-security-vulnerability-in-react-server-components
+        title: "React advisory — Dec 2025 RSC critical security"
+        accessed: "2026-05-24"
+      - url: https://react.dev/blog/2025/12/11/denial-of-service-and-source-code-exposure-in-react-server-components
+        title: "React advisory — Dec 2025 DoS + source exposure"
+        accessed: "2026-05-24"
+      - url: https://github.com/vercel/next.js/security/advisories/GHSA-9qr9-h5gf-34mp
+        title: "GHSA-9qr9-h5gf-34mp"
+        accessed: "2026-05-24"
+      - url: https://react.dev/reference/react/experimental_taintUniqueValue
+        title: "React experimental_taintUniqueValue API"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
-  # ───────── Tools ─────────
+  - id: nextjs-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/next
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/nextjs-security/SKILL.md
+      - appsec-stack-pack/nextjs-security/references/app-router-patterns.md
+    current_pin: "14 (in SKILL.md examples)"
+    upstream_latest:
+      version: "16.2.6 / 15.5.18 (May 2026 wave); minimum floor for CVE-2025-29927 is 15.2.3 / 14.2.25 / 13.5.9"
+      as_of: "2026-05-24"
+    drift_severity: critical
+    drift_risk: |
+      May 2026 patch wave landed 13 CVEs. CVE-2025-29927 middleware
+      bypass affects pre-15.2.3. CVE-2025-49826 cache poisoning (204),
+      CVE-2025-59471 `/_next/image` 4GB OOM, GHSA-c4j6-fc7j-m34r
+      WebSocket-upgrade SSRF, CVE-2025-66478 Server Action Flight RCE.
+    sources:
+      - url: https://vercel.com/changelog/next-js-may-2026-security-release
+        title: "Vercel — Next.js May 2026 security release"
+        accessed: "2026-05-24"
+      - url: https://nextjs.org/blog/security-update-2025-12-11
+        title: "Next.js security update 2025-12-11"
+        accessed: "2026-05-24"
+      - url: https://securityonline.info/next-js-flaw-cve-2025-49826-cvss-7-5-cache-poisoning-leads-to-denial-of-service/
+        title: "Security Online — CVE-2025-49826 cache poisoning"
+        accessed: "2026-05-24"
+      - url: https://dev.to/cverports/cve-2025-59471-nextjs-image-optimizer-the-4gb-hello-world-5c09
+        title: "CVE-2025-59471 image optimizer 4GB OOM"
+        accessed: "2026-05-24"
+      - url: https://github.com/vercel/next.js/security/advisories/GHSA-9qr9-h5gf-34mp
+        title: "GHSA-9qr9-h5gf-34mp Next.js Server Action RCE"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: vite-framework
+    kind: tool
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/vite
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/vite-security/SKILL.md
+      - appsec-stack-pack/vite-security/references/env-vite-config.md
+    current_pin: "≤6.x CVE-listing in skill"
+    upstream_latest:
+      version: "8.0.5 / 7.3.2 / 6.4.2 (April 2026 — CVE-2026-39363 fixes)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2026-39363 (GHSA-p9ff-h696-f583) — Vite dev-server WebSocket
+      arbitrary file read, April 2026. Affects 6.x/7.x/8.x. Vite 7
+      also changed dev-server defaults (`allowedHosts: 'auto'`).
+    sources:
+      - url: https://github.com/vitejs/vite/security/advisories/GHSA-p9ff-h696-f583
+        title: "GHSA-p9ff-h696-f583 — Vite dev server file read"
+        accessed: "2026-05-24"
+      - url: https://advisories.gitlab.com/pkg/npm/vite/CVE-2026-39363/
+        title: "GitLab advisories — CVE-2026-39363"
+        accessed: "2026-05-24"
+      - url: https://www.offsec.com/blog/cve-2025-30208/
+        title: "OffSec — CVE-2025-30208 Vite"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: vue-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/vue
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/vue-nuxt-security/SKILL.md
+    current_pin: "Vue 2/3 generic"
+    upstream_latest:
+      version: "Vue 3.5.x current; Vue 2.x EOL"
+      as_of: "2026-05-24"
+    drift_severity: low
+    drift_risk: |
+      Vue 2 EOL Dec 2023. CVE-2024-6783 prototype-pollution chain
+      affects Vue 2. Vue 3 patching not flagged as required floor.
+    sources:
+      - url: https://www.sentinelone.com/vulnerability-database/cve-2024-6783/
+        title: "SentinelOne — CVE-2024-6783"
+        accessed: "2026-05-24"
+      - url: https://vuejs.org/about/releases
+        title: "Vue.js releases"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: nuxt-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/nuxt
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/vue-nuxt-security/SKILL.md
+    current_pin: "<3.13 implied"
+    upstream_latest:
+      version: "4.4.x current (Nuxt 4 GA July 2025)"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Nuxt 4 reorganized `app/` directory and added HMAC for proxy
+      endpoints. `payload.json` cache-poisoning DoS class
+      (zhero-web-sec, 2025) not in current SKILL.
+    sources:
+      - url: https://nuxt.com/blog/v4
+        title: "Nuxt 4 release announcement"
+        accessed: "2026-05-24"
+      - url: https://zhero-web-sec.github.io/research-and-things/nuxt-show-me-your-payload
+        title: "zhero-web-sec — Nuxt payload DoS research"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: vue-i18n
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/vue-i18n
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/vue-nuxt-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "11.x current; ≥9.x patched for CVE-2024-52809, CVE-2025-53892"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      `vue-i18n` prototype-pollution XSS — CVE-2024-52809,
+      CVE-2025-53892. i18n is near-universal in Vue apps.
+    sources:
+      - url: https://github.com/intlify/vue-i18n/security/advisories/GHSA-9r9m-ffp6-9x4v
+        title: "GHSA-9r9m-ffp6-9x4v vue-i18n"
+        accessed: "2026-05-24"
+      - url: https://security.snyk.io/vuln/SNYK-JS-VUEI18N-10771082
+        title: "Snyk — vue-i18n vulnerability"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: sveltekit-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/@sveltejs/kit
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/svelte-sveltekit-security/SKILL.md
+    current_pin: "1.x or 2.x patched (no floor)"
+    upstream_latest:
+      version: "≥2.49.5 required (Jan 2026 CVE-2025-67647 fix); Apr 2026 cluster bumps further"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      Jan-Apr 2026 CVE wave — CVE-2025-67647 SSRF+DoS via prerender +
+      adapter-node missing ORIGIN env, GHSA-vrhm-gvg7-fpcf Remote
+      Functions type-coercion memory amplifier, GHSA-2crg-3p73-43xp
+      BODY_SIZE_LIMIT bypass, GHSA-3f6h-2hrp-w5wx handle-hook redirect
+      DoS, GHSA-hgv7-v322-mmgr query.batch cross-talk, CVE-2025-32388
+      search_params XSS.
+    sources:
+      - url: https://svelte.dev/blog/cves-affecting-the-svelte-ecosystem
+        title: "Svelte ecosystem CVE blog"
+        accessed: "2026-05-24"
+      - url: https://github.com/advisories/GHSA-j62c-4x62-9r35
+        title: "GHSA-j62c-4x62-9r35"
+        accessed: "2026-05-24"
+      - url: https://zhero-web-sec.github.io/research-and-things/avoiding-the-paradox-a-native-full-read-ssrf-and-oneshot-dos-in-sveltekit
+        title: "zhero-web-sec — SvelteKit SSRF + DoS research"
+        accessed: "2026-05-24"
+      - url: https://svelte.dev/docs/kit/remote-functions
+        title: "SvelteKit Remote Functions docs"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: angular-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/@angular/core
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/angular-security/SKILL.md
+    current_pin: "14+ generic in SKILL"
+    upstream_latest:
+      version: "21.x LTS / 20.x stable; CVE-2026-32635 patched only in 19.2.20 / 20.3.18 / 21.2.4 (no patch for 17 / 18)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2026-32635 i18n attribute binding XSS bypasses sanitizer,
+      affects v17–v22. NO PATCH for 17 or 18. CVE-2025-66412 Template
+      Compiler XSS. Angular 20 (May 2025) stable signals + zoneless.
+    sources:
+      - url: https://www.herodevs.com/blog-posts/cve-2026-32635-cross-site-scripting-xss-in-angular-i18n-attribute-bindings
+        title: "Herodevs — CVE-2026-32635 Angular i18n XSS"
+        accessed: "2026-05-24"
+      - url: https://www.sentinelone.com/vulnerability-database/cve-2025-66412/
+        title: "SentinelOne — CVE-2025-66412 Angular Template Compiler"
+        accessed: "2026-05-24"
+      - url: https://angular.dev/best-practices/security
+        title: "Angular best practices — security"
+        accessed: "2026-05-24"
+      - url: https://www.grazitti.com/blog/whats-new-in-angular-20-signals-zoneless-and-smarter-ssr/
+        title: "Grazitti — What's new in Angular 20"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: electron-runtime
+    kind: runtime
+    upstream:
+      type: github_releases
+      url: https://github.com/electron/electron/releases
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/electron-security/SKILL.md
+    current_pin: "≥12 implied (modern defaults)"
+    upstream_latest:
+      version: "38.8.6 / 39.8.0 / 40.7.0 / 41.0.0-beta.8 (CVE-2026-34769 fixes)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2026-34769 (commandLineSwitches injection) requires the
+      patched versions above. CVE-2025-55305 ASAR Integrity Bypass.
+      Electron Fuses model (`runAsNode`, `cookieEncryption`,
+      `embeddedAsarIntegrityValidation`, `onlyLoadAppFromAsar`) is
+      canonical hardening but barely referenced.
+    sources:
+      - url: https://www.electronjs.org/docs/latest/tutorial/fuses
+        title: "Electron Fuses tutorial"
+        accessed: "2026-05-24"
+      - url: https://www.electronjs.org/docs/latest/tutorial/asar-integrity
+        title: "Electron ASAR integrity tutorial"
+        accessed: "2026-05-24"
+      - url: https://github.com/electron/electron/security/advisories/GHSA-vmqv-hx8q-j7mg
+        title: "GHSA-vmqv-hx8q-j7mg Electron advisory"
+        accessed: "2026-05-24"
+      - url: https://cvefeed.io/vuln/detail/CVE-2026-34769
+        title: "CVEfeed — CVE-2026-34769"
+        accessed: "2026-05-24"
+      - url: https://www.electronjs.org/blog/statement-run-as-node-cves
+        title: "Electron blog — runAsNode CVE statement"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Backend Node frameworks ─────────
+
+  - id: express-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/express
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/nodejs-express-security/SKILL.md
+    current_pin: "4.x implied"
+    upstream_latest:
+      version: "5.1.x stable; 4.21.x EOL line still receiving security patches"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Express 5.0 released 2024-10-15, promoted to `latest` in 2025.
+      path-to-regexp 8 syntax (`*splat`, `{/:name}`), removed regex
+      sub-expressions affect every route audit. `body-parser ≥1.20.5`
+      / `qs ≥6.13.0` baseline for CVE-2022-24999.
+    sources:
+      - url: https://expressjs.com/2024/10/15/v5-release.html
+        title: "Express 5 release announcement"
+        accessed: "2026-05-24"
+      - url: https://github.com/pillarjs/path-to-regexp/security/advisories/GHSA-9wv6-86v2-598j
+        title: "GHSA-9wv6-86v2-598j path-to-regexp"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: nodejs-multer
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/multer
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/nodejs-express-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "≥2.0.0 (May 2025 security release)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      May 2025 Multer security wave — CVE-2025-47944, CVE-2025-47935,
+      CVE-2025-7338. DoS via malformed multipart still trivially
+      exploitable on 1.4.x-lts.1.
+    sources:
+      - url: https://github.com/expressjs/multer/security/advisories/GHSA-4pg4-qvpc-4q3h
+        title: "GHSA-4pg4-qvpc-4q3h multer"
+        accessed: "2026-05-24"
+      - url: https://expressjs.com/2025/05/19/security-releases.html
+        title: "Express security releases May 2025"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: nestjs-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/@nestjs/core
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/nestjs-security/SKILL.md
+    current_pin: "10.x/11.x implied"
+    upstream_latest:
+      version: "11.1.23+ (released throughout 2025-2026)"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      NestJS 11 (Jan 2025) reversed lifecycle hook order (silently
+      breaks shutdown-order assumptions), CacheModule v6/Keyv (cross-
+      user cache risk), IntrinsicException, platform-express bumps to
+      Express 5. class-validator deprecation discussion ongoing.
+    sources:
+      - url: https://trilon.io/blog/announcing-nestjs-11-whats-new
+        title: "Trilon — NestJS 11 release"
+        accessed: "2026-05-24"
+      - url: https://github.com/nestjs/nest/releases
+        title: "NestJS releases"
+        accessed: "2026-05-24"
+      - url: https://github.com/nestjs/nest/issues/8390
+        title: "NestJS issue #8390 — class-validator deprecation"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: fastify-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/fastify
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/fastify-security/SKILL.md
+    current_pin: "v4 or v5 implied"
+    upstream_latest:
+      version: "v5.x current (5.0 GA 2024-09-17); v4 LTS extended"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Fastify 5 dropped Node <20, removed JSON Schema shorthands,
+      stricter AJV defaults, ~20 documented breaking changes.
+      `@fastify/multipart` ≥8.x (Fastify 5) / ≥7.4.1 (Fastify 4)
+      needed for CVE-2023-25576; CVE-2025-24033 needs newer.
+    sources:
+      - url: https://fastify.dev/blog/2024/09/17/fastify-v5/
+        title: "Fastify v5 release blog"
+        accessed: "2026-05-24"
+      - url: https://github.com/fastify/fastify-multipart/security/advisories/GHSA-hgmh-h26r-hgg5
+        title: "GHSA-hgmh-h26r-hgg5 fastify-multipart"
+        accessed: "2026-05-24"
+      - url: https://vulert.com/vuln-db/CVE-2025-24033
+        title: "Vulert — CVE-2025-24033 fastify-multipart"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: hono-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/hono
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/hono-security/SKILL.md
+    current_pin: "4.x line implied"
+    upstream_latest:
+      version: "4.12.22 (May 2026); ≥4.11.7 required for GHSA-w332-q679-j88p"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      GHSA-w332-q679-j88p (Jan 2026) — arbitrary key read in
+      `serve-static` Cloudflare Workers adapter, pre-4.11.7.
+      CVE-2024-48913 CSRF middleware bypass via missing Content-Type.
+    sources:
+      - url: https://github.com/honojs/hono/security/advisories/GHSA-w332-q679-j88p
+        title: "GHSA-w332-q679-j88p Hono serve-static traversal"
+        accessed: "2026-05-24"
+      - url: https://www.miggo.io/vulnerability-database/cve/CVE-2024-48913
+        title: "Miggo — CVE-2024-48913 Hono CSRF"
+        accessed: "2026-05-24"
+      - url: https://hono.dev/docs/middleware/builtin/csrf
+        title: "Hono CSRF middleware docs"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Backend Python frameworks ─────────
+
+  - id: django-framework
+    kind: framework
+    upstream:
+      type: pypi
+      url: https://pypi.org/project/Django/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/django-security/SKILL.md
+    current_pin: "4 implied in SKILL"
+    upstream_latest:
+      version: "5.2 LTS (Apr 2025, supported to Apr 2028); 5.x stable; 4.2 LTS EOL Apr 2026"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      Django 4.2 LTS EOL April 2026. 5.1 added `LoginRequiredMiddleware`
+      (default-deny inversion). Feb 2026 SQLi cluster (CVE-2024-53908)
+      not in current SKILL. Composite primary keys (5.2) change
+      `get_object_or_404(pk=...)` authz patterns.
+    sources:
+      - url: https://docs.djangoproject.com/en/5.2/releases/5.1/
+        title: "Django 5.1 release notes"
+        accessed: "2026-05-24"
+      - url: https://docs.djangoproject.com/en/5.2/releases/5.2/
+        title: "Django 5.2 release notes"
+        accessed: "2026-05-24"
+      - url: https://www.djangoproject.com/weblog/2026/feb/03/security-releases/
+        title: "Django security releases Feb 2026"
+        accessed: "2026-05-24"
+      - url: https://nvd.nist.gov/vuln/detail/CVE-2024-45230
+        title: "NVD — CVE-2024-45230"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: fastapi-framework
+    kind: framework
+    upstream:
+      type: pypi
+      url: https://pypi.org/project/fastapi/
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/fastapi-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "0.118+ (Pydantic v1 support dropped at 0.113)"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      FastAPI 0.110+ changed dependency-injection caching. Pydantic v2
+      hard floor. `Annotated[..., Depends(...)]` is the 0.95+ canonical
+      form. `lifespan` replaces `@app.on_event`.
+    sources:
+      - url: https://fastapi.tiangolo.com/release-notes/
+        title: "FastAPI release notes"
+        accessed: "2026-05-24"
+      - url: https://docs.pydantic.dev/latest/migration/
+        title: "Pydantic v2 migration guide"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: starlette-asgi
+    kind: framework
+    upstream:
+      type: pypi
+      url: https://pypi.org/project/starlette/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/fastapi-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "0.49.1+ required (CVE-2025-62727 fix)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2025-62727 Range-header O(n²) DoS in StreamingResponse /
+      FileResponse / StaticFiles. Patched in 0.49.1.
+    sources:
+      - url: https://github.com/Kludex/starlette/security/advisories/GHSA-7f5h-v6xp-fcq8
+        title: "GHSA-7f5h-v6xp-fcq8 Starlette Range DoS"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: werkzeug-wsgi
+    kind: library
+    upstream:
+      type: pypi
+      url: https://pypi.org/project/Werkzeug/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/flask-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "3.0.6+ (covers CVE-2024-49766, CVE-2024-49767, CVE-2024-34069)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      Werkzeug 3.0.6 baseline — CVE-2024-49766 safe_join Windows
+      traversal, CVE-2024-49767 multipart-form memory blow-up,
+      CVE-2024-34069 debugger CSRF.
+    sources:
+      - url: https://nvd.nist.gov/vuln/detail/CVE-2024-49767
+        title: "NVD — CVE-2024-49767 Werkzeug multipart DoS"
+        accessed: "2026-05-24"
+      - url: https://github.com/advisories/GHSA-f9vj-2wh5-fj8j
+        title: "GHSA-f9vj-2wh5-fj8j Werkzeug safe_join"
+        accessed: "2026-05-24"
+      - url: https://www.sentinelone.com/vulnerability-database/cve-2024-34069/
+        title: "SentinelOne — CVE-2024-34069 Werkzeug debugger"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: jinja2-template
+    kind: library
+    upstream:
+      type: pypi
+      url: https://pypi.org/project/Jinja2/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/flask-security/SKILL.md
+      - appsec-stack-pack/django-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "3.1.6+ (CVE-2024-22195 + CVE-2025-27516)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      Jinja2 3.1.6+ patches CVE-2024-22195 xmlattr HTML injection
+      and CVE-2025-27516 `|attr` sandbox escape.
+    sources:
+      - url: https://github.com/advisories/GHSA-h5c8-rqwp-cp95
+        title: "GHSA-h5c8-rqwp-cp95 Jinja2 xmlattr"
+        accessed: "2026-05-24"
+      - url: https://github.com/advisories/GHSA-cpwx-vrp4-4pq7
+        title: "GHSA-cpwx-vrp4-4pq7 Jinja2 attr sandbox"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: flask-framework
+    kind: framework
+    upstream:
+      type: pypi
+      url: https://pypi.org/project/Flask/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/flask-security/SKILL.md
+    current_pin: "3.x implied"
+    upstream_latest:
+      version: "3.1.1+ (avoid 3.1.0 — GHSA-4grg-w6v8-c28g key-fallback ordering bug); 3.2.x current"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Flask 3.1.0 shipped with `SECRET_KEY_FALLBACKS` ordering bug
+      (GHSA-4grg-w6v8-c28g). 3.0.0 RCE chain via debugger + session
+      (CVE-2025-55182 / packetstorm).
+    sources:
+      - url: https://github.com/pallets/flask/security/advisories/GHSA-4grg-w6v8-c28g
+        title: "GHSA-4grg-w6v8-c28g Flask 3.1.0 fallback inversion"
+        accessed: "2026-05-24"
+      - url: https://flask.palletsprojects.com/en/stable/changes/
+        title: "Flask changelog"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Other backend frameworks ─────────
+
+  - id: rails-framework
+    kind: framework
+    upstream:
+      type: github_releases
+      url: https://github.com/rails/rails/releases
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/rails-security/SKILL.md
+    current_pin: "6/7/8 implied"
+    upstream_latest:
+      version: "8.0.2.1 (Aug 2025); 7.2.2.2 / 7.1.5.2 patched lines"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2025-24293 Active Storage RCE via unsafe transformation.
+      CVE-2025-55193 ANSI escape injection in AR logging. Rails 8
+      native auth generator + ActiveRecord Encryption are the new
+      standard patterns.
+    sources:
+      - url: https://rubyonrails.org/2025/8/13/Rails-Versions-8-0-2-1-7-2-2-2-and-7-1-5-2-have-been-released
+        title: "Rails 8.0.2.1 / 7.2.2.2 / 7.1.5.2 release"
+        accessed: "2026-05-24"
+      - url: https://www.opswat.com/blog/critical-cve-2025-24293-in-ruby-on-rails-active-storage-rce-discovered-by-opswat-unit-515
+        title: "OPSWAT — CVE-2025-24293 Rails Active Storage RCE"
+        accessed: "2026-05-24"
+      - url: https://blog.saeloun.com/2025/05/12/rails-8-adds-built-in-authentication-generator/
+        title: "Rails 8 auth generator"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: laravel-framework
+    kind: framework
+    upstream:
+      type: github_releases
+      url: https://github.com/laravel/framework/releases
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/laravel-security/SKILL.md
+    current_pin: "9-12 implied"
+    upstream_latest:
+      version: "12.x current; 13.x in early release"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      Laravel 11 (Mar 2024) reorganized app structure (`bootstrap/
+      app.php`). Octane long-lived workers leak request state.
+      laravel/reverb GHSA-m27r-m6rx-mhm4 CVSS 9.8 — Redis horizontal-
+      scaling `unserialize()` insecure deser, fixed in 1.7.0.
+    sources:
+      - url: https://laravel.com/docs/11.x/releases
+        title: "Laravel 11 releases"
+        accessed: "2026-05-24"
+      - url: https://laravel.com/docs/12.x/releases
+        title: "Laravel 12 releases"
+        accessed: "2026-05-24"
+      - url: https://github.com/laravel/reverb/security/advisories/GHSA-m27r-m6rx-mhm4
+        title: "GHSA-m27r-m6rx-mhm4 Laravel Reverb deser RCE"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: spring-security
+    kind: framework
+    upstream:
+      type: github_releases
+      url: https://github.com/spring-projects/spring-security/releases
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/spring-boot-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "6.5.4+ (CVE-2025-41248); 6.4.10 also patched"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2025-41248 method-security on generic super-types/interfaces
+      not detected → authorization bypass. Affects 6.4.0–6.4.9,
+      6.5.0–6.5.3. CVE-2025-41232 private-method annotation bypass.
+      CVE-2025-53864 nimbus-jose-jwt DoS via uncontrolled recursion.
+    sources:
+      - url: https://spring.io/security/cve-2025-41248/
+        title: "Spring — CVE-2025-41248 advisory"
+        accessed: "2026-05-24"
+      - url: https://spring.io/security/cve-2025-41232/
+        title: "Spring — CVE-2025-41232 advisory"
+        accessed: "2026-05-24"
+      - url: https://github.com/spring-projects/spring-security/issues/17583
+        title: "spring-security issue #17583"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── API protocols ─────────
+
+  - id: apollo-server
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/@apollo/server
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/graphql-security/SKILL.md
+      - appsec-stack-pack/graphql-security/references/field-level-auth.md
+    current_pin: "4.x implied"
+    upstream_latest:
+      version: "5.5+ stable"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Apollo Server 5 GA 2025 — header-only DoS class, CSRF
+      Content-Type tightening, 200→400 status fix for variable
+      coercion. Federation @authenticated/@requiresScopes require v2.5+
+      and GraphOS Router (not @apollo/gateway). GHSA-m8jr-fxqx-8xx6
+      federation transitive-field authz bypass.
+    sources:
+      - url: https://github.com/apollographql/apollo-server/blob/main/packages/server/CHANGELOG.md
+        title: "Apollo Server CHANGELOG"
+        accessed: "2026-05-24"
+      - url: https://www.apollographql.com/docs/graphos/schema-design/federated-schemas/reference/directives
+        title: "Apollo Federation directives"
+        accessed: "2026-05-24"
+      - url: https://github.com/apollographql/federation/security/advisories/GHSA-m8jr-fxqx-8xx6
+        title: "GHSA-m8jr-fxqx-8xx6 Federation transitive authz"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: trpc-framework
+    kind: framework
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/@trpc/server
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/trpc-security/SKILL.md
+    current_pin: "v10/v11 implied"
+    upstream_latest:
+      version: "v11.x GA 2025"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      v11 changed subscriptions to async generators, added SSE
+      transport (httpSubscriptionLink), removed `.interop()`, made
+      inputs lazy. devalue is explicitly insecure server-side
+      (trpc#6092). httpBatchLink `maxBatchSize` bugs per trpc#5825.
+    sources:
+      - url: https://trpc.io/docs/migrate-from-v10-to-v11
+        title: "tRPC v10 → v11 migration"
+        accessed: "2026-05-24"
+      - url: https://trpc.io/blog/announcing-trpc-v11
+        title: "tRPC v11 announcement"
+        accessed: "2026-05-24"
+      - url: https://github.com/trpc/trpc/issues/6092
+        title: "tRPC issue #6092 — devalue insecure server-side"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: ws-library
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/ws
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/websocket-security/SKILL.md
+    current_pin: "≥8.x (insufficient)"
+    upstream_latest:
+      version: "≥8.20.1 required (CVE-2024-37890 + uninitialized-memory)"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2024-37890 header-flood DoS (fixed 8.17.1).
+      Uninitialized-memory disclosure (fixed 8.20.1). Blanket `>=8.x`
+      lets vulnerable patches through.
+    sources:
+      - url: https://nvd.nist.gov/vuln/detail/cve-2024-37890
+        title: "NVD — CVE-2024-37890 ws"
+        accessed: "2026-05-24"
+      - url: https://security.snyk.io/vuln/SNYK-JS-WS-7266574
+        title: "Snyk — ws uninitialized memory"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: socketio-server
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/socket.io
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/websocket-security/SKILL.md
+    current_pin: "≥4.x (insufficient)"
+    upstream_latest:
+      version: "≥4.8.x required (CVE-2026-33151); engine.io ≥6.6.7; socket.io-parser ≥4.2.4"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2024-38355 uncaught error event DoS (fixed 4.6.2).
+      CVE-2026-33151 unbounded binary attachments in socket.io-parser
+      (fixed 4.8.x). engine.io 6.6.7 fixes WebTransport middleware
+      bypass.
+    sources:
+      - url: https://github.com/advisories/GHSA-25hc-qcg6-38wj
+        title: "GHSA-25hc-qcg6-38wj socket.io"
+        accessed: "2026-05-24"
+      - url: https://github.com/socketio/socket.io/security
+        title: "socket.io security advisories"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Data layer ─────────
+
+  - id: prisma-orm
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/prisma
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/prisma-orm-security/SKILL.md
+    current_pin: "~5.x implied"
+    upstream_latest:
+      version: "6.19.0 (Nov 2025)"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Prisma 6.19 introduced Rust-free query compiler, `pool=true`
+      flag, TypedSQL maturity. Operator injection in `where` filter
+      (`{gt: ""}` into string field) is silent on Postgres. RLS-with-
+      `$extends` is the canonical transaction-pool-safe pattern.
+    sources:
+      - url: https://www.prisma.io/blog/announcing-prisma-6-19-0
+        title: "Prisma 6.19 announcement"
+        accessed: "2026-05-24"
+      - url: https://www.aikido.dev/blog/prisma-and-postgresql-vulnerable-to-nosql-injection
+        title: "Aikido — Prisma+Postgres NoSQL injection"
+        accessed: "2026-05-24"
+      - url: https://github.com/prisma/prisma-client-extensions/tree/main/row-level-security
+        title: "Prisma RLS extension example"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: mongoose-orm
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/mongoose
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/mongoose-mongodb-security/SKILL.md
+    current_pin: "6/7 implied"
+    upstream_latest:
+      version: "≥8.9.5 / 7.8.4 / 6.13.6 (CVE-2025-23061); ≥8.22.1 for $nor bypass"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2024-53900 + CVE-2025-23061 `$where` via `populate.match`,
+      CVSS 9.0 — exploit-in-wild RCE-class. 2025 `$nor` sanitizeFilter
+      bypass fixed in 8.22.1. `populate({match})` is filter, NOT authz.
+    sources:
+      - url: https://github.com/advisories/GHSA-vg7j-7cwx-8wgw
+        title: "GHSA-vg7j-7cwx-8wgw mongoose"
+        accessed: "2026-05-24"
+      - url: https://www.opswat.com/blog/technical-discovery-mongoose-cve-2025-23061-cve-2024-53900
+        title: "OPSWAT — Mongoose CVE-2025-23061 / CVE-2024-53900"
+        accessed: "2026-05-24"
+      - url: https://nsfocusglobal.com/mongodb-mongoose-search-injection-vulnerability-cve-2025-23061/
+        title: "NSFOCUS — Mongoose search injection"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: redis-server
+    kind: runtime
+    upstream:
+      type: github_releases
+      url: https://github.com/redis/redis/releases
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/redis-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "≥8.2.2 / 8.0.4 / 7.4.6 / 7.2.11 / 6.2.20 (CVE-2025-49844 RediShell patch lines)"
+      as_of: "2026-05-24"
+    drift_severity: critical
+    drift_risk: |
+      CVE-2025-49844 "RediShell" — Lua use-after-free → RCE affected
+      ALL versions until Oct 2025 patches (CVSS 10.0). Highest-impact
+      Redis CVE in years. Redis 8 introduced new ACL categories for
+      bundled modules (@search, @json, @timeseries, @bloom) — existing
+      `+@all` grants now expose more.
+    sources:
+      - url: https://redis.io/blog/security-advisory-cve-2025-49844/
+        title: "Redis security advisory CVE-2025-49844 RediShell"
+        accessed: "2026-05-24"
+      - url: https://www.wiz.io/blog/wiz-research-redis-rce-cve-2025-49844
+        title: "Wiz Research — Redis RCE CVE-2025-49844"
+        accessed: "2026-05-24"
+      - url: https://www.sysdig.com/blog/cve-2025-49844-redishell
+        title: "Sysdig — RediShell"
+        accessed: "2026-05-24"
+      - url: https://support.redislabs.com/hc/en-us/articles/32203307847442-Understanding-ACL-Category-Changes-in-Redis-8
+        title: "Redis 8 ACL category changes"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Auth providers ─────────
+
+  - id: clerk-nextjs
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/@clerk/nextjs
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/clerk-security/SKILL.md
+    current_pin: "v5/v6 implied"
+    upstream_latest:
+      version: "7.3.7+ (Nov 2026); Core 3 released 2026-03-03"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      Clerk Core 3 — async `auth()` (was sync), `auth.protect()` now
+      401 (was 404), satellite `satelliteAutoSync` default flipped to
+      false, dropped Next 13/14 support. M2M tokens released Feb 2026.
+      `auth()` shown as sync in SKILL — wrong on current install.
+    sources:
+      - url: https://clerk.com/changelog/2026-03-03-core-3
+        title: "Clerk Core 3 changelog"
+        accessed: "2026-05-24"
+      - url: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3
+        title: "Clerk Core 3 upgrade guide"
+        accessed: "2026-05-24"
+      - url: https://clerk.com/docs/reference/backend/verify-token
+        title: "Clerk verifyToken docs"
+        accessed: "2026-05-24"
+      - url: https://clerk.com/docs/guides/development/machine-auth/m2m-tokens
+        title: "Clerk M2M tokens docs"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: nextauth-authjs
+    kind: library
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/next-auth
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/nextauth-security/SKILL.md
+    current_pin: "v4 / v5-beta"
+    upstream_latest:
+      version: "v5 still beta (May 2026); v4.24.x last stable v4; Auth.js merged into Better Auth Sep 2025"
+      as_of: "2026-05-24"
+    drift_severity: high
+    drift_risk: |
+      CVE-2025-29927 Next.js middleware bypass directly weaponizes
+      NextAuth middleware-based protection. Auth.js v5 still beta
+      2+ years. `AUTH_TRUST_HOST` required on non-Vercel hosts in v5.
+      Auth.js project merged into Better Auth (Sep 2025).
+    sources:
+      - url: https://github.com/advisories/GHSA-f82v-jwr5-mffw
+        title: "GHSA-f82v-jwr5-mffw Next.js middleware bypass"
+        accessed: "2026-05-24"
+      - url: https://authjs.dev/getting-started/migrating-to-v5
+        title: "Auth.js v5 migration guide"
+        accessed: "2026-05-24"
+      - url: https://github.com/nextauthjs/next-auth/discussions/13252
+        title: "Auth.js / Better Auth merge discussion"
+        accessed: "2026-05-24"
+      - url: https://github.com/nextauthjs/next-auth/security/advisories/GHSA-f9wg-5f46-cjmw
+        title: "GHSA-f9wg-5f46-cjmw NextAuth open redirect"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Edge / Cloud ─────────
+
+  - id: wrangler-cli
+    kind: tool
+    upstream:
+      type: npm
+      url: https://www.npmjs.com/package/wrangler
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/cloudflare-workers-security/SKILL.md
+    current_pin: "3.x implied"
+    upstream_latest:
+      version: "4.x current"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Wrangler 4 brought stricter config validation, account-level
+      secrets bindings, new `secrets_store_secrets` binding type.
+      `wrangler.jsonc` is the recommended format since 3.91 (2024).
+    sources:
+      - url: https://developers.cloudflare.com/workers/wrangler/configuration/
+        title: "Cloudflare Wrangler configuration"
+        accessed: "2026-05-24"
+      - url: https://developers.cloudflare.com/secrets-store/integrations/workers/
+        title: "Cloudflare Secrets Store integrations"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: workers-compat-date
+    kind: protocol
+    upstream:
+      type: official_endpoint
+      url: https://developers.cloudflare.com/workers/configuration/compatibility-dates/
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/cloudflare-workers-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "Recommend ≥2026-03-17 for full Node built-in set; ≥2024-09-23 for nodejs_compat baseline"
+      as_of: "2026-05-24"
+    drift_severity: low
+    drift_risk: |
+      `nodejs_compat` flag exposes Node built-ins via `compatibility_
+      date` rollouts. `node:vm` available since 2025-10-01;
+      `node:child_process` from 2026-03-17. Each new built-in expands
+      the dangerous-API surface in user-controlled-input paths.
+    sources:
+      - url: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+        title: "Cloudflare Workers Node.js runtime APIs"
+        accessed: "2026-05-24"
+      - url: https://developers.cloudflare.com/workers/configuration/compatibility-flags/
+        title: "Cloudflare Workers compatibility flags"
+        accessed: "2026-05-24"
+      - url: https://blog.cloudflare.com/nodejs-workers-2025/
+        title: "Cloudflare blog — Node.js in Workers 2025"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: aws-lambda-snapstart
+    kind: protocol
+    upstream:
+      type: official_endpoint
+      url: https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/aws-lambda-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "SnapStart on Python 3.12+, .NET 8, others (was Java-only)"
+      as_of: "2026-05-24"
+    drift_severity: medium
+    drift_risk: |
+      Snapshot determinism (randomness, UUIDs, crypto seeds) is a new
+      class of vulnerability — values restored from snapshot are
+      identical, so secrets and entropy fetched in init are stale.
+      `afterRestore` hook is the mitigation.
+    sources:
+      - url: https://docs.aws.amazon.com/lambda/latest/dg/snapstart-security.html
+        title: "AWS — Lambda SnapStart security"
+        accessed: "2026-05-24"
+      - url: https://aws.amazon.com/blogs/compute/securely-retrieving-secrets-with-aws-lambda/
+        title: "AWS blog — securely retrieving secrets with Lambda"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  # ───────── Tools / scanners ─────────
 
   - id: cosign-tool
     kind: tool
-    source:
+    upstream:
       type: github_releases
-      repo: sigstore/cosign
+      url: https://github.com/sigstore/cosign/releases
       track: latest
     pinned_in:
       - saas-security-pack/github-supply-chain/references/sbom-generation.md
       - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
-    current_pin: "v2.x (STALE — Cosign v3 GA mid-2025; bump examples)"
-    last_verified: "2026-05-23"
+    current_pin: "v2.x in SKILL"
+    upstream_latest:
+      version: "v3.x GA (mid-2025); Rekor v2 transparency log"
+      as_of: "2026-05-24"
     drift_severity: medium
     drift_risk: |
       Cosign 3 GA mid-2025 flipped `--new-bundle-format` and
-      `--trusted-root` to defaults. v2 commands now warn; v1 syntax
-      fails outright. Rekor v2 transparency log changes the verify
-      flow. Skills teaching `cosign sign-blob` / `cosign verify` need
-      bundle-format flag updates and Rekor v2 readiness notes.
+      `--trusted-root` to defaults. v2 commands warn; v1 syntax fails.
+      Rekor v2 changes the verify flow.
+    sources:
+      - url: https://blog.sigstore.dev/cosign-3-0-available/
+        title: "Sigstore blog — Cosign 3.0 available"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: trivy-scanner
     kind: tool
-    source:
+    upstream:
       type: github_releases
-      repo: aquasecurity/trivy
+      url: https://github.com/aquasecurity/trivy/releases
       track: latest
     pinned_in:
       - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
       - saas-security-pack/iac-container-security/scripts/run_iac_scanners.sh
     current_pin: null
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "0.55+ stable"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
       Trivy 0.50+ changed scanner naming (`--scanners` accepts new
-      values), removed deprecated flags. Old example invocations error
-      on current versions.
+      values), removed deprecated flags. Old example invocations
+      error on current versions.
+    sources:
+      - url: https://github.com/aquasecurity/trivy/releases
+        title: "Trivy releases"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: checkov-scanner
     kind: tool
-    source:
+    upstream:
       type: pypi
-      package: checkov
+      url: https://pypi.org/project/checkov/
       track: latest
     pinned_in:
       - saas-security-pack/iac-container-security/scripts/run_iac_scanners.sh
     current_pin: null
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "3.x current"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
       Checkov check IDs (CKV_AWS_*) are added/renamed over time.
-      Suppression examples (`.checkov.yaml` skip-check lists) need to
+      Suppression examples (`.checkov.yaml` skip-check) need to
       reference IDs that still exist.
+    sources:
+      - url: https://www.checkov.io/
+        title: "Checkov by Bridgecrew"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
-  # ───────── Protocols / Standards ─────────
+  # ───────── Protocols / standards ─────────
 
   - id: tls-protocol
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://datatracker.ietf.org/doc/html/rfc8446
       track: stable
@@ -330,32 +1435,45 @@ technologies:
       - saas-security-pack/saas-compliance-audit/SKILL.md
       - saas-security-pack/saas-frontend-hardening/SKILL.md
     current_pin: "TLS 1.2+ required, 1.3 preferred"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "TLS 1.3 (RFC 8446) stable; PCI-DSS 4.0 removed TLS 1.0/1.1"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      Stable; review yearly. If/when TLS 1.4 is standardized or 1.2 is
-      formally deprecated for compliance frameworks (PCI DSS 4.0
-      removed TLS 1.0/1.1 entirely; next revisions may tighten 1.2),
-      update guidance.
+      Stable; review yearly. PCI-DSS 4.0 fully phased out TLS 1.0/1.1.
+      Track whether 1.2 deprecation tightens further in future PCI
+      revisions.
+    sources:
+      - url: https://datatracker.ietf.org/doc/html/rfc8446
+        title: "RFC 8446 — TLS 1.3"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: oauth-pkce
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://datatracker.ietf.org/doc/html/rfc7636
       track: stable
     pinned_in:
       - saas-security-pack/saas-api-security/SKILL.md
     current_pin: "PKCE required for public clients"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "OAuth 2.1 draft makes PKCE mandatory for ALL clients"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      OAuth 2.1 (draft) makes PKCE mandatory for ALL clients, not just
-      public. Worth tracking when 2.1 is finalized.
-
-  # ───────── Web platform standards (evolving) ─────────
+      OAuth 2.1 (draft) makes PKCE mandatory for ALL clients, not
+      just public.
+    sources:
+      - url: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1
+        title: "OAuth 2.1 draft"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: csp-spec
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://www.w3.org/TR/CSP3/
       track: stable
@@ -364,31 +1482,52 @@ technologies:
       - appsec-stack-pack/web-platform-security/references/csp-and-trusted-types.md
       - saas-security-pack/saas-frontend-hardening/references/csp-design.md
     current_pin: "CSP Level 3 (strict CSP recommended)"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "CSP3 stable; CSP Level 4 features in origin trials"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      CSP Level 4 features (e.g., `trusted-types` integration tweaks,
-      new directives) land in browsers via origin trials. Track
-      web.dev articles and the Chrome Platform Status feed.
+      CSP Level 4 features (Trusted Types integration tweaks, new
+      directives) land in browsers via origin trials. `report-uri`
+      deprecated in favor of `Reporting-Endpoints` + `report-to`.
+    sources:
+      - url: https://www.w3.org/TR/CSP3/
+        title: "W3C — CSP Level 3"
+        accessed: "2026-05-24"
+      - url: https://web.dev/articles/strict-csp
+        title: "web.dev — Strict CSP"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: trusted-types
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://www.w3.org/TR/trusted-types/
       track: stable
     pinned_in:
       - appsec-stack-pack/web-platform-security/SKILL.md
       - appsec-stack-pack/web-platform-security/references/csp-and-trusted-types.md
-    current_pin: "Chromium-only; Firefox / Safari status: behind flag / in review"
-    last_verified: "2026-05-23"
+    current_pin: "Chromium-only; Firefox / Safari behind flag"
+    upstream_latest:
+      version: "W3C working draft; Chromium-shipping; Firefox in review; Safari behind flag"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
       Cross-browser support determines when guidance can recommend
       Trusted Types as a hard requirement vs Chromium-only hardening.
-      Check Safari Tech Preview and Firefox release notes.
+    sources:
+      - url: https://www.w3.org/TR/trusted-types/
+        title: "W3C — Trusted Types"
+        accessed: "2026-05-24"
+      - url: https://web.dev/articles/trusted-types
+        title: "web.dev — Prevent DOM XSS with Trusted Types"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: private-network-access
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://wicg.github.io/private-network-access/
       track: stable
@@ -396,17 +1535,25 @@ technologies:
       - appsec-stack-pack/web-platform-security/SKILL.md
       - appsec-stack-pack/web-platform-security/references/cors-and-pna.md
     current_pin: "PNA preflight — Chrome staged enforcement"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "Chrome staged rollout (warning → enforcement); spec at WICG"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
       Chrome rollout has been multi-phase (warning → enforcement in
-      contexts → broader enforcement). Date of full enforcement
-      affects when LAN-targeted apps must add the
-      `Access-Control-Allow-Private-Network: true` response header.
-      Source of truth: chromestatus.com entry for PNA.
+      contexts → broader). Source of truth: chromestatus.com PNA entry.
+    sources:
+      - url: https://wicg.github.io/private-network-access/
+        title: "WICG — Private Network Access"
+        accessed: "2026-05-24"
+      - url: https://developer.chrome.com/blog/private-network-access-preflight
+        title: "Chrome blog — PNA preflight"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: chips-partitioned-cookies
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://developers.google.com/privacy-sandbox/cookies/chips
       track: stable
@@ -414,16 +1561,26 @@ technologies:
       - appsec-stack-pack/web-platform-security/SKILL.md
       - appsec-stack-pack/web-platform-security/references/cookies-modern.md
     current_pin: "CHIPS GA in Chromium; Firefox / Safari status varies"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "Partitioned attribute GA in Chromium; Firefox/Safari status mixed"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      The Partitioned attribute graduated from origin trial. Embedded
-      SaaS guidance now recommends Partitioned + SameSite=None +
-      Secure. Third-party cookie phase-out timeline in Chrome has
-      shifted multiple times — track Privacy Sandbox status posts.
+      Partitioned attribute graduated from origin trial. Embedded
+      SaaS guidance now recommends Partitioned + SameSite=None + Secure.
+      Third-party cookie phase-out timeline in Chrome shifts.
+    sources:
+      - url: https://developers.google.com/privacy-sandbox/cookies/chips
+        title: "Google Privacy Sandbox — CHIPS"
+        accessed: "2026-05-24"
+      - url: https://developer.mozilla.org/en-US/docs/Web/Privacy/Privacy_sandbox/Partitioned_cookies
+        title: "MDN — Partitioned cookies"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: coop-coep
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://web.dev/articles/coop-coep
       track: stable
@@ -431,601 +1588,182 @@ technologies:
       - appsec-stack-pack/web-platform-security/SKILL.md
       - appsec-stack-pack/web-platform-security/references/cross-origin-isolation.md
     current_pin: "COOP same-origin + COEP require-corp / credentialless"
-    last_verified: "2026-05-23"
+    upstream_latest:
+      version: "COOP / COEP / CORP stable; `credentialless` graduated from origin trial"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      `credentialless` graduated from origin trial. Reporting endpoint
-      semantics shifted (`Reporting-Endpoints` vs older `Report-To`).
-      Cross-origin isolation gate list (`SharedArrayBuffer`,
-      high-res timers) may expand.
+      `credentialless` graduated. Reporting endpoint semantics shifted
+      (`Reporting-Endpoints` vs older `Report-To`). Cross-origin
+      isolation gate list may expand.
+    sources:
+      - url: https://web.dev/articles/coop-coep
+        title: "web.dev — COOP/COEP"
+        accessed: "2026-05-24"
+      - url: https://developer.chrome.com/blog/coep-credentialless-origin-trial
+        title: "Chrome — COEP credentialless"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: fedcm
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://fedidcg.github.io/FedCM/
       track: latest
     pinned_in:
       - appsec-stack-pack/web-platform-security/SKILL.md
-    current_pin: "FedCM Working Draft; Chromium-shipping, others in evaluation"
-    last_verified: "2026-05-23"
+    current_pin: "FedCM Working Draft; Chromium-shipping"
+    upstream_latest:
+      version: "Working Draft; Chromium-shipping; active mode, multi-IDP, mediation modes still evolving"
+      as_of: "2026-05-24"
+    drift_severity: low
     drift_risk: |
-      FedCM API surface (`navigator.credentials.get({identity})`) has
-      been stable in Chromium for two+ years but the spec is still
-      evolving (active mode, multi-IDP, mediation modes). Skills
-      should track which patterns are GA vs experimental.
+      FedCM API surface stable in Chromium for 2+ years but spec still
+      evolving. Skills should track which patterns are GA vs experimental.
+    sources:
+      - url: https://fedidcg.github.io/FedCM/
+        title: "FedCM Working Draft"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: webauthn-passkeys
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://www.w3.org/TR/webauthn-3/
       track: stable
     pinned_in:
       - appsec-stack-pack/web-platform-security/SKILL.md
-    current_pin: "WebAuthn Level 3; Passkeys (discoverable creds + UV)"
-    last_verified: "2026-05-23"
-    drift_risk: |
-      Cross-platform passkey sync (iCloud Keychain, Google Password
-      Manager, 1Password, Bitwarden) capability changes affect what
-      "recommended" looks like. Conditional UI (passkey autofill)
-      browser support is staged.
-
-  # ───────── NEW entries added from multi-agent enhancement review (2026-05-23) ─────────
-  # See docs/ENHANCEMENT_PLAN.md for the full per-skill review and citations.
-
-  - id: redis-server
-    kind: runtime
-    source:
-      type: github_releases
-      repo: redis/redis
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/redis-security/SKILL.md
-    current_pin: "unspecified (CRITICAL — CVE-2025-49844 RediShell, CVSS 10.0)"
-    last_verified: "2026-05-23"
-    drift_severity: critical
-    drift_risk: |
-      CVE-2025-49844 "RediShell" — Lua use-after-free → RCE affects ALL
-      versions until 6.2.20 / 7.2.11 / 7.4.6 / 8.0.4 / 8.2.2 (Oct 2025).
-      Highest-impact Redis CVE in years. CVE-2025-21605 unauth output-
-      buffer DoS. Redis 8 introduced new ACL categories for bundled
-      modules (@search, @json, @timeseries, @bloom) — existing `+@all`
-      grants now expose more. ACL selectors (Redis 7.2+) and `MODULE
-      LOAD` restriction are new audit surfaces.
-
-  - id: mongoose-orm
-    kind: library
-    source:
-      type: npm
-      package: mongoose
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/mongoose-mongodb-security/SKILL.md
-    current_pin: "unspecified (HIGH — CVE-2025-23061 ≥8.9.5; ≥8.22.1 for $nor bypass)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2024-53900 + CVE-2025-23061 (`$where` via `populate.match`,
-      CVSS 9.0) — exploit-in-wild RCE-class. Fixed in 8.9.5 / 7.8.4 /
-      6.13.6. 2025 `$nor` sanitizeFilter bypass fixed in 8.22.1.
-      `populate({match})` is filter, NOT authz — common IDOR pattern.
-
-  - id: electron-runtime
-    kind: runtime
-    source:
-      type: github_releases
-      repo: electron/electron
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/electron-security/SKILL.md
-    current_pin: "unspecified (HIGH — CVE-2026-34769 ≥38.8.6/39.8.0/40.7.0)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2026-34769 (commandLineSwitches injection via undocumented
-      `commandLineSwitches` webPreference) requires 38.8.6 / 39.8.0 /
-      40.7.0 / 41.0.0-beta.8. CVE-2025-55305 (ASAR Integrity Bypass)
-      requires recent patches + install to system-protected path.
-      Electron Fuses model (`runAsNode`, `cookieEncryption`,
-      `embeddedAsarIntegrityValidation`, `onlyLoadAppFromAsar`, etc.)
-      is the canonical hardening surface but barely referenced.
-
-  - id: dotnet-runtime
-    kind: runtime
-    source:
-      type: official_endpoint
-      url: https://github.com/dotnet/core/releases
-      track: lts
-    pinned_in:
-      - appsec-stack-pack/dotnet-aspnetcore-security/SKILL.md
-    current_pin: "unspecified (CRITICAL — CVE-2025-55315 ≥8.0.21/9.0.10; CVE-2026-40372 ≥10.0.7)"
-    last_verified: "2026-05-23"
-    drift_severity: critical
-    drift_risk: |
-      CVE-2025-55315 Kestrel request smuggling, CVSS 9.9 (Microsoft's
-      highest-ever score). Patched .NET 8.0.21 / 9.0.10 / 10.0-rc.2.
-      CVE-2026-40372 ASP.NET Core DataProtection HMAC tag computed over
-      wrong payload slice → forgeable auth cookies, antiforgery tokens,
-      OIDC state. Patched .NET 10.0.7.
-
-  - id: spring-security
-    kind: framework
-    source:
-      type: github_releases
-      repo: spring-projects/spring-security
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/spring-boot-security/SKILL.md
-    current_pin: "unspecified (HIGH — CVE-2025-41248 ≥6.4.10/6.5.4)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2025-41248 — method-security annotations on generic super-
-      types/interfaces not detected → authorization bypass. Affects
-      6.4.0–6.4.9, 6.5.0–6.5.3. CVE-2025-41232 private-method
-      annotation bypass via aspects. CVE-2025-53864 nimbus-jose-jwt
-      DoS via uncontrolled recursion (transitively pulled).
-
-  - id: vite-framework
-    kind: tool
-    source:
-      type: npm
-      package: vite
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/vite-security/SKILL.md
-      - appsec-stack-pack/vite-security/references/env-vite-config.md
-    current_pin: "unspecified (HIGH — CVE-2026-39363 ≥6.4.2/7.3.2/8.0.5)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2026-39363 (GHSA-p9ff-h696-f583) — Vite dev-server WebSocket
-      arbitrary file read, April 2026. Affects 6.x/7.x/8.x. Vite 7 also
-      changed dev-server defaults (`allowedHosts: 'auto'`, OAuth-style
-      WebSocket origin). `vite preview` security model still
-      mis-treated as production-grade — must not be exposed publicly.
-
-  - id: sveltekit-framework
-    kind: framework
-    source:
-      type: npm
-      package: "@sveltejs/kit"
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/svelte-sveltekit-security/SKILL.md
-    current_pin: "unspecified (HIGH — Jan/Apr 2026 advisory cluster ≥2.49.5)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      Jan-Apr 2026 CVE wave — CVE-2025-67647 SSRF+DoS via prerender +
-      adapter-node missing ORIGIN env (affects 2.19.0–2.49.4), GHSA-
-      vrhm-gvg7-fpcf Remote Functions type-coercion memory amplifier,
-      GHSA-2crg-3p73-43xp BODY_SIZE_LIMIT bypass, GHSA-3f6h-2hrp-w5wx
-      handle-hook redirect DoS, GHSA-hgv7-v322-mmgr query.batch
-      cross-talk, CVE-2025-32388 search_params XSS. Remote Functions
-      (`.remote.ts`) is the new primary RPC surface.
-
-  - id: angular-framework
-    kind: framework
-    source:
-      type: npm
-      package: "@angular/core"
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/angular-security/SKILL.md
-    current_pin: "unspecified (HIGH — CVE-2026-32635 ≥19.2.20/20.3.18/21.2.4)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2026-32635 i18n attribute binding XSS bypasses sanitizer,
-      affects v17–v22. Critically — there is NO PATCH for 17 or 18;
-      only 19.2.20 / 20.3.18 / 21.2.4 fixed. CVE-2025-66412 Template
-      Compiler XSS via incomplete schema validation. Angular 20 (May
-      2025) stable signals + zoneless change detection alter security
-      baseline for re-entrancy bugs.
-
-  - id: hono-framework
-    kind: framework
-    source:
-      type: npm
-      package: hono
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/hono-security/SKILL.md
-    current_pin: "unspecified (HIGH — GHSA-w332-q679-j88p ≥4.11.7)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      GHSA-w332-q679-j88p (Jan 2026) — arbitrary key read in
-      `serve-static` Cloudflare Workers adapter, pre-4.11.7.
-      CVE-2024-48913 CSRF middleware bypass via missing Content-Type.
-      Runtime-divergent (`c.env` lifetime on Workers vs Node vs Bun)
-      patterns need explicit guidance.
-
-  - id: nodejs-multer
-    kind: library
-    source:
-      type: npm
-      package: multer
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/nodejs-express-security/SKILL.md
-    current_pin: "unspecified (HIGH — CVE-2025-47944/47935/7338 ≥2.0.0)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      May 2025 Multer security wave — CVE-2025-47944, CVE-2025-47935,
-      CVE-2025-7338. DoS via malformed multipart still trivially
-      exploitable on 1.4.x-lts.1.
-
-  - id: express-framework
-    kind: framework
-    source:
-      type: npm
-      package: express
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/nodejs-express-security/SKILL.md
-    current_pin: "4.x (STALE — Express 5.1.x stable since 2025)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
-    drift_risk: |
-      Express 5.0 released 2024-10-15, promoted to `latest` in 2025.
-      path-to-regexp 8 syntax (`*splat`, `{/:name}`), removed regex
-      sub-expressions, query-parser changes affect every route audit.
-      `body-parser ≥1.20.5` / `qs ≥6.13.0` baseline for CVE-2022-24999.
-
-  - id: starlette-asgi
-    kind: framework
-    source:
-      type: pypi
-      package: starlette
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/fastapi-security/SKILL.md
-    current_pin: "unspecified (HIGH — CVE-2025-62727 ≥0.49.1)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2025-62727 Range-header O(n²) DoS in StreamingResponse /
-      FileResponse / StaticFiles. Patched in 0.49.1.
-
-  - id: werkzeug-wsgi
-    kind: library
-    source:
-      type: pypi
-      package: werkzeug
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/flask-security/SKILL.md
-    current_pin: "unspecified (HIGH — 3.0.6+ cluster)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      Werkzeug 3.0.6 baseline — CVE-2024-49766 safe_join Windows path
-      traversal, CVE-2024-49767 multipart-form memory blow-up, CVE-
-      2024-34069 debugger CSRF. All three are routinely exploited via
-      drive-by.
-
-  - id: jinja2-template
-    kind: library
-    source:
-      type: pypi
-      package: jinja2
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/flask-security/SKILL.md
-      - appsec-stack-pack/django-security/SKILL.md
-    current_pin: "unspecified (HIGH — 3.1.6+ for CVE-2024-22195 + CVE-2025-27516)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      Jinja2 3.1.6+ patches CVE-2024-22195 `xmlattr` HTML injection
-      and CVE-2025-27516 `|attr` sandbox escape. Autoescape is FILE-
-      EXTENSION-driven (not auto for non-`.html` templates) —
-      `select_autoescape` required.
-
-  - id: rails-framework
-    kind: framework
-    source:
-      type: github_releases
-      repo: rails/rails
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/rails-security/SKILL.md
-    current_pin: "unspecified (HIGH — Rails ≥7.1.5.2/7.2.2.2/8.0.2.1 for CVE-2025-24293)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2025-24293 Active Storage RCE via unsafe transformation
-      methods. CVE-2025-55193 ANSI escape injection in AR logging.
-      Patched 8.0.2.1 / 7.2.2.2 / 7.1.5.2. Rails 8 native auth
-      generator + ActiveRecord Encryption are the new standard
-      patterns — pre-Rails-8 mental model is materially obsolete.
-
-  - id: laravel-framework
-    kind: framework
-    source:
-      type: github_releases
-      repo: laravel/framework
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/laravel-security/SKILL.md
-    current_pin: "unspecified (HIGH — Reverb GHSA-m27r-m6rx-mhm4, CVSS 9.8 ≥1.7.0)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      laravel/reverb GHSA-m27r-m6rx-mhm4 (CVSS 9.8) — Redis horizontal-
-      scaling `unserialize()` insecure deserialization, fixed in 1.7.0.
-      Laravel 11 (Mar 2024) reorganized app structure (`bootstrap/
-      app.php` replaces HTTP Kernel). Octane long-lived workers leak
-      request state — classic foot-gun the SKILL doesn't cover.
-
-  - id: prisma-orm
-    kind: library
-    source:
-      type: npm
-      package: prisma
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/prisma-orm-security/SKILL.md
-    current_pin: "unspecified (MEDIUM — bump floor to ≥6.x)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
-    drift_risk: |
-      Prisma 6.19.0 (Nov 2025) introduced Rust-free query compiler,
-      `pool=true` flag, TypedSQL maturity. Operator injection in
-      `where` filter (`{gt: ""}` passed into string field) is silent
-      on Postgres. TypedSQL replaces `$queryRawUnsafe` for type-safe
-      dynamic columns. RLS-with-`$extends` is the canonical
-      transaction-pool-safe pattern.
-
-  - id: trpc-framework
-    kind: framework
-    source:
-      type: npm
-      package: "@trpc/server"
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/trpc-security/SKILL.md
-    current_pin: "unspecified (MEDIUM — tRPC v11 GA 2025)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
-    drift_risk: |
-      v11 changed subscriptions from observables to async generators,
-      added SSE subscription transport (httpSubscriptionLink), removed
-      `.interop()`, made inputs lazy. superjson is safe; devalue is
-      explicitly insecure server-side (trpc#6092).
-
-  - id: ws-library
-    kind: library
-    source:
-      type: npm
-      package: ws
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/websocket-security/SKILL.md
-    current_pin: "≥8.x (STALE — CVE-2024-37890 ≥8.17.1; uninitialized-memory ≥8.20.1)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2024-37890 header-flood DoS. Uninitialized-memory disclosure
-      issue fixed in 8.20.1. The blanket `>= 8.x` recommendation lets
-      vulnerable patches through.
-
-  - id: socketio-server
-    kind: library
-    source:
-      type: npm
-      package: socket.io
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/websocket-security/SKILL.md
-    current_pin: "≥4.x (STALE — CVE-2026-33151 ≥4.8.x)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2024-38355 uncaught error event DoS (fixed 4.6.2). CVE-2026-
-      33151 unbounded binary attachments in socket.io-parser (fixed
-      4.8.x). engine.io 6.6.6/6.6.7 hardening (WebTransport middleware
-      bypass).
-
-  - id: apollo-server
-    kind: framework
-    source:
-      type: npm
-      package: "@apollo/server"
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/graphql-security/SKILL.md
-      - appsec-stack-pack/graphql-security/references/field-level-auth.md
-    current_pin: "unspecified (MEDIUM — Apollo Server 5 GA 2025)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
-    drift_risk: |
-      Apollo Server 5 GA 2025 — header-only DoS class (utf-8/16/32
-      enforcement), CSRF Content-Type tightening, 200→400 status fix
-      for variable coercion. Apollo Federation @authenticated /
-      @requiresScopes directives require v2.5+ AND GraphOS Router (not
-      `@apollo/gateway`). GHSA-m8jr-fxqx-8xx6 federation transitive-
-      field authz bypass.
-
-  - id: clerk-nextjs
-    kind: library
-    source:
-      type: npm
-      package: "@clerk/nextjs"
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/clerk-security/SKILL.md
-    current_pin: "unspecified (HIGH — Clerk Core 3 Mar 2026 breaking changes)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      Clerk Core 3 (released 2026-03-03) — async `auth()` (was sync),
-      `auth.protect()` now 401 (was 404), satellite `satelliteAutoSync`
-      default flipped to false, dropped Next 13/14 support. `auth()`
-      shown as sync in SKILL examples — wrong on current install.
-      Machine auth / M2M tokens released Feb 2026.
-
-  - id: nextauth-authjs
-    kind: library
-    source:
-      type: npm
-      package: "next-auth"
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/nextauth-security/SKILL.md
-    current_pin: "v4 / v5-beta (HIGH — Auth.js v5 still beta 2+ years; weaponized by CVE-2025-29927)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      CVE-2025-29927 (Next.js middleware bypass via `x-middleware-
-      subrequest`) directly weaponizes NextAuth middleware-based
-      protection. Auth.js v5 still beta as of May 2026. `AUTH_TRUST_
-      HOST` required on non-Vercel hosts in v5. Auth.js project merged
-      into Better Auth (Sep 2025).
-
-  - id: wrangler-cli
-    kind: tool
-    source:
-      type: npm
-      package: wrangler
-      track: latest
-    pinned_in:
-      - appsec-stack-pack/cloudflare-workers-security/SKILL.md
-    current_pin: "implied 3.x (STALE — Wrangler 4.x current)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
-    drift_risk: |
-      Wrangler 4.x brought stricter config validation, account-level
-      secrets bindings, new `secrets_store_secrets` binding type.
-      `wrangler.jsonc` is the recommended format since 3.91 (2024),
-      not `wrangler.toml`.
-
-  - id: workers-compat-date
-    kind: protocol
-    source:
-      type: official_endpoint
-      url: https://developers.cloudflare.com/workers/configuration/compatibility-dates/
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/cloudflare-workers-security/SKILL.md
-    current_pin: "unspecified (recommend ≥2026-03-17 if relying on newer Node built-ins)"
-    last_verified: "2026-05-23"
+    current_pin: "WebAuthn Level 3; Passkeys"
+    upstream_latest:
+      version: "WebAuthn Level 3 W3C Rec; passkeys cross-platform sync via iCloud / Google PM / 1Password / Bitwarden"
+      as_of: "2026-05-24"
     drift_severity: low
     drift_risk: |
-      `nodejs_compat` flag exposes Node built-ins via `compatibility_
-      date` rollouts. `node:vm` available since 2025-10-01;
-      `node:child_process` from 2026-03-17. Each new built-in expands
-      the dangerous-API surface in user-controlled-input paths.
+      Cross-platform passkey sync capability changes affect "recommended"
+      patterns. Conditional UI (passkey autofill) browser support staged.
+    sources:
+      - url: https://www.w3.org/TR/webauthn-3/
+        title: "W3C — WebAuthn Level 3"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
-  - id: go-runtime
-    kind: runtime
-    source:
-      type: official_endpoint
-      url: https://go.dev/doc/devel/release
-      track: stable
-    pinned_in:
-      - appsec-stack-pack/go-security/SKILL.md
-    current_pin: "implied 1.18+ (MEDIUM — Go 1.25 current; CVE-2025-22871 ≥1.23.8/1.24.2)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
-    drift_risk: |
-      CVE-2025-22871 net/http chunked LF request smuggling — patched
-      Go 1.23.8 / 1.24.2. Go 1.22+ ServeMux method/wildcard routing
-      changes 405 semantics. FIPS 140-3 native mode (`GODEBUG=fips140
-      =on`) replaces `GOEXPERIMENT=boringcrypto` in Go 1.24+.
+  # ───────── Compliance standards ─────────
 
-  - id: aws-lambda-snapstart
+  - id: hipaa-nprm
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
-      url: https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html
+      url: https://www.federalregister.gov/documents/2025/01/06/2024-30983/
       track: stable
     pinned_in:
-      - appsec-stack-pack/aws-lambda-security/SKILL.md
-    current_pin: "unspecified (MEDIUM — SnapStart now on Python 3.12+, .NET 8, others)"
-    last_verified: "2026-05-23"
-    drift_severity: medium
+      - saas-security-pack/saas-compliance-audit/SKILL.md
+    current_pin: "2013 Security Rule (stale)"
+    upstream_latest:
+      version: "NPRM published Jan 6, 2025; final rule expected May 2026"
+      as_of: "2026-05-24"
+    drift_severity: high
     drift_risk: |
-      SnapStart expanded beyond Java to Python 3.12+, .NET 8, and
-      others. Snapshot determinism (randomness, UUIDs, crypto seeds)
-      is a new class of vulnerability — values restored from snapshot
-      are identical, so secrets and entropy fetched in init are stale.
-      `afterRestore` hook is the mitigation.
+      HIPAA Security Rule NPRM introduces mandatory encryption,
+      mandatory MFA, asset inventory, network segmentation, vulnerability
+      scanning every 6 months, pen-testing annually, 72h breach
+      notification tightening. Auditors pre-checking NPRM during 2026.
+    sources:
+      - url: https://www.federalregister.gov/documents/2025/01/06/2024-30983/hipaa-security-rule-to-strengthen-the-cybersecurity-of-electronic-protected-health-information
+        title: "Federal Register — HIPAA Security Rule NPRM"
+        accessed: "2026-05-24"
+      - url: https://www.hhs.gov/hipaa/for-professionals/security/hipaa-security-rule-nprm/factsheet/index.html
+        title: "HHS — HIPAA Security Rule NPRM fact sheet"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
+
+  - id: cisa-kev-catalog
+    kind: protocol
+    upstream:
+      type: official_endpoint
+      url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+      track: stable
+    pinned_in:
+      - saas-security-pack/iac-container-security/SKILL.md
+    current_pin: null
+    upstream_latest:
+      version: "Updated weekly by CISA"
+      as_of: "2026-05-24"
+    drift_severity: low
+    drift_risk: |
+      CISA Known Exploited Vulnerabilities catalog is the canonical
+      "patch this NOW" feed. SaaS audits should treat KEV entries as
+      shorter patch SLA than general CVE flow.
+    sources:
+      - url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+        title: "CISA Known Exploited Vulnerabilities Catalog"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
   - id: supabase-jwt
     kind: protocol
-    source:
+    upstream:
       type: official_endpoint
       url: https://supabase.com/docs/guides/auth
       track: stable
     pinned_in:
       - saas-security-pack/supabase-security-audit/SKILL.md
       - saas-security-pack/supabase-security-audit/references/edge-functions-auth.md
-    current_pin: "HS256 implied (STALE — new projects default to ES256 asymmetric since 2025-05-01)"
-    last_verified: "2026-05-23"
+    current_pin: "HS256 implied"
+    upstream_latest:
+      version: "New projects default to ES256 asymmetric since 2025-05-01"
+      as_of: "2026-05-24"
     drift_severity: medium
     drift_risk: |
-      Supabase Auth default JWT algorithm flipped to ES256 (asymmetric)
-      for new projects from 2025-05-01. Edge function JWT validation
-      patterns differ. New API key model (`sb_publishable_*` /
-      `sb_secret_*`) replaces legacy `anon` / `service_role` model.
-
-  - id: hipaa-nprm
-    kind: protocol
-    source:
-      type: official_endpoint
-      url: https://www.federalregister.gov/documents/2025/01/06/2024-30983/
-      track: stable
-    pinned_in:
-      - saas-security-pack/saas-compliance-audit/SKILL.md
-    current_pin: "2013 Security Rule (STALE — NPRM Jan 2025 published; final expected May 2026)"
-    last_verified: "2026-05-23"
-    drift_severity: high
-    drift_risk: |
-      HIPAA Security Rule NPRM (Jan 2025) introduces mandatory
-      encryption at rest & in transit, mandatory MFA, asset inventory,
-      network segmentation, vulnerability scanning every 6 months,
-      pen-testing annually, 72h breach notification tightening.
-      Auditors are pre-checking NPRM posture during 2026.
-
-  - id: cisa-kev-catalog
-    kind: protocol
-    source:
-      type: official_endpoint
-      url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
-      track: stable
-    pinned_in:
-      - saas-security-pack/iac-container-security/SKILL.md
-    current_pin: "not currently tracked (recommend adding to triage flow)"
-    last_verified: "2026-05-23"
-    drift_severity: low
-    drift_risk: |
-      CISA Known Exploited Vulnerabilities catalog is the canonical
-      "patch this NOW" feed. SaaS audits should treat KEV entries as
-      shorter patch SLA than general CVE flow. Updated weekly.
+      Supabase Auth default JWT algorithm flipped to ES256
+      (asymmetric) for new projects from 2025-05-01. Edge function JWT
+      validation patterns differ. New API key model
+      (`sb_publishable_*` / `sb_secret_*`) replaces legacy `anon` /
+      `service_role` model.
+    sources:
+      - url: https://supabase.com/docs/guides/auth
+        title: "Supabase Auth docs"
+        accessed: "2026-05-24"
+      - url: https://github.com/supabase/supabase/issues/44530
+        title: "Supabase issue #44530 — JWT migration"
+        accessed: "2026-05-24"
+    last_verified: "2026-05-24"
 
 # ───────── Inventory metadata ─────────
 
 inventory:
-  schema_version: 2
-  last_full_review: "2026-05-23"
+  schema_version: 3
+  last_full_review: "2026-05-24"
   maintainer: "@hlsitechio"
   notes: |
-    Schema v2 (2026-05-23): added `drift_severity` field per entry and
-    expanded inventory from 25 → 50+ entries based on multi-agent
-    enhancement review. Each new entry includes citations in
-    docs/ENHANCEMENT_PLAN.md.
+    Schema v3 (2026-05-24): every entry now has `upstream_latest`
+    (concrete version + `as_of` date) and `sources` (citation URLs with
+    `accessed` date). Previously many entries had `current_pin: null`
+    or "unspecified" — now each tech has both the pinned version (what
+    skills say) AND the upstream latest (what's actually current).
 
-    Entries with current_pin: null are tracked but have no concrete
-    version mentioned yet in the skills — the drift check still flags
-    upstream advisories so we can decide whether to add specific
-    guidance.
+    Schema v2 (2026-05-23): added `drift_severity` field.
+    Schema v1 (2026-05-23): initial 25 entries.
 
-    Wave-1 priority items (CVSS ≥9.0 or no-patch-path):
-    redis-server, dotnet-runtime, react-framework (RSC cluster),
-    nextjs-framework (May 2026 wave + CVE-2025-29927),
-    mongoose-orm, spring-security, vite-framework, sveltekit-framework,
-    angular-framework, electron-runtime, hono-framework, hipaa-nprm.
+    Severity counts (2026-05-24): 4 critical, 18 high, 13 medium,
+    16 low, ~5 unscored. Wave-1 priority items (CVSS ≥9.0 or
+    no-patch-path):
+      - redis-server (CVE-2025-49844 RediShell, CVSS 10.0)
+      - dotnet-runtime (CVE-2025-55315 Kestrel, CVSS 9.9 + CVE-2026-40372)
+      - react-framework (Dec 2025 RSC CVE cluster CVSS 10.0)
+      - nextjs-framework (May 2026 wave + CVE-2025-29927)
+      - mongoose-orm (CVE-2025-23061 + CVE-2024-53900 CVSS 9.0)
+      - spring-security (CVE-2025-41248 authz bypass)
+      - vite-framework (CVE-2026-39363 dev-server file read)
+      - sveltekit-framework (Jan/Apr 2026 cluster)
+      - angular-framework (CVE-2026-32635, no patch v17/v18)
+      - electron-runtime (CVE-2026-34769)
+      - hono-framework (GHSA-w332)
+      - hipaa-nprm (regulatory)
+
+    Source-citation policy: every claim about a version, CVE, or
+    upstream behavior must include at least one verifiable URL. URLs
+    are dated with `accessed:` so future readers can spot link rot.
+    When a source 404s, mark the entry `last_verified` outdated and
+    propose a replacement source in the next review.
