@@ -11,6 +11,53 @@ A monorepo of **defensive security audit skills for Claude**, split into two pac
 
 A typical real-world audit activates 5+ skills from both packs concurrently. Finding IDs must not collide across packs.
 
+## PRIMARY review focus: version drift
+
+**The single most important thing a scheduled review catches is version drift.**
+
+These skills are security guidance. When upstream tech (Node, Next, Django, base images, GitHub Actions, scanners) ships a new release, the existing guidance can become silently insecure:
+
+- Recommended runtime version goes past EOL → CVE feeds stop covering it.
+- Framework changes default auth/cookie/cache behavior (Next 14 → 15, Django 4 → 5, React 18 → 19) → existing checks miss the new attack surface.
+- Action SHAs in example workflows go stale → users copy outdated pins.
+- Scanner tools (Trivy, Cosign, Checkov) change CLI flags → example commands fail.
+
+**For every scheduled review:**
+
+1. Load [`.github/tech-inventory.yml`](./tech-inventory.yml).
+2. For each entry, fetch the latest from `source` (see "Upstream lookups" below).
+3. Compare against `current_pin` and against the actual version mentioned in each `pinned_in` file.
+4. Classify each result:
+   - **CRITICAL** — pinned version is past EOL, or has known unpatched CVEs.
+   - **HIGH** — pinned version is ≥2 majors behind current, OR new major changed security-relevant defaults that the skill doesn't cover.
+   - **MEDIUM** — 1 major behind, or behind on a CVE-backport patch.
+   - **LOW** — behind on patch only, no known CVE.
+   - **INFO** — matches upstream / no change.
+5. For each non-INFO finding, propose the specific edit: `file:line — old → new — rationale`.
+6. Update `last_verified` in the inventory entries you checked (in the same review-output PR if one is opened).
+
+**Upstream lookups (preferred, in order):**
+
+| Source type | How to fetch latest |
+|-------------|----------------------|
+| `github_releases` | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` |
+| `npm` | `npm view <pkg> dist-tags.latest` |
+| `pypi` | `curl -s https://pypi.org/pypi/<pkg>/json \| jq -r .info.version` |
+| `docker_hub` | `curl -s 'https://hub.docker.com/v2/repositories/library/<image>/tags?page_size=20' \| jq -r '.results[].name'` |
+| `official_endpoint` | Per the `url` in the inventory entry (Node uses `nodejs.org/dist/index.json`) |
+
+**CVE corroboration:**
+
+For each runtime/framework/library found behind, also check:
+- `gh api graphql -f query='{ securityVulnerabilities(...) }'` for GHSA advisories.
+- The NVD JSON feed for the version specifically pinned.
+
+A version "1 patch behind" without a CVE is LOW; "1 patch behind" with a CVE that the patch fixes is HIGH.
+
+**Inventory gaps:**
+
+If a skill references a tech version that is not in `tech-inventory.yml`, propose adding it. New inventory entries are part of the review output, not a separate PR.
+
 ## Hard constraints
 
 - **Defensive only.** Reject any change that adds offensive content: exploit code, weaponized payloads, bypass techniques presented as attack chains, automated pentest tooling. The audit framing is *find-and-fix*, not *exploit*.

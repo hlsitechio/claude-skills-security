@@ -1,0 +1,350 @@
+# Tech Inventory — version drift surface for daily review
+#
+# This file is the canonical list of external technologies whose version
+# appears in skill content. The daily review (see
+# .github/ISSUE_TEMPLATE/daily-skill-review.md and
+# .github/copilot-instructions.md) compares `current_pin` against the
+# upstream `source` and reports drift.
+#
+# Drift matters because the skills are security guidance. A skill that
+# pins to Node 18 in May 2026 is not just stale — it pre-dates CVE fixes
+# in undici, HTTP/2, OpenSSL backports, and may recommend mitigations
+# (e.g., specific TLS modes, header handling) that newer runtimes have
+# changed or hardened differently.
+#
+# Schema:
+#   id            short identifier (kebab-case)
+#   kind          runtime | base_image | action | framework | library | tool | protocol
+#   source        how to fetch "what's current" — see "Source types" below
+#   pinned_in     file paths where this tech appears with a concrete version
+#   current_pin   version / tag / SHA mentioned in pinned_in
+#   last_verified ISO date this entry was checked against upstream
+#   drift_risk    what specifically becomes insecure if guidance lags
+#
+# Source types:
+#   github_releases   { repo, track: lts|latest|stable }
+#   npm               { package, track: latest|lts }
+#   pypi              { package, track: latest|stable }
+#   docker_hub        { image, track: lts|latest }
+#   official_endpoint { url }   (for runtimes with their own release feed)
+#
+# Updating this file:
+#   - When a skill is edited to bump a version, also bump current_pin
+#     and last_verified here.
+#   - When a new tech is referenced, add an entry.
+#   - The daily review may propose entries to add (under "Inventory gaps").
+
+technologies:
+
+  # ───────── Runtimes ─────────
+
+  - id: nodejs-runtime
+    kind: runtime
+    source:
+      type: official_endpoint
+      url: https://nodejs.org/dist/index.json
+      track: lts
+    pinned_in:
+      - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
+      - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
+    current_pin: "20.11.1"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Node 20 entered maintenance in April 2026. Node 22 is active LTS.
+      Patch releases in the 20.x line continue to ship CVE fixes for
+      undici, HTTP/2, OpenSSL backports — even staying on 20.x means
+      tracking the latest patch. Guidance recommending Node 18 or
+      earlier is past EOL.
+
+  - id: python-runtime
+    kind: runtime
+    source:
+      type: official_endpoint
+      url: https://www.python.org/api/v2/downloads/release/
+      track: stable
+    pinned_in:
+      # Add when a Python pin appears in any SKILL.md or reference
+      []
+    current_pin: null
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Python 3.8 EOL October 2024; 3.9 EOL October 2025. Skills should
+      not recommend SAST baselines for runtimes past EOL — CVE feeds
+      no longer cover them.
+
+  # ───────── Base images ─────────
+
+  - id: distroless-nodejs
+    kind: base_image
+    source:
+      type: github_releases
+      repo: GoogleContainerTools/distroless
+      track: latest
+    pinned_in:
+      - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
+    current_pin: "gcr.io/distroless/nodejs20-debian12:nonroot"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      The `nodejs20` tag rebuilds with current 20.x patch; the `debian12`
+      base is rebuilt on Debian security advisories. If a Debian 13
+      variant becomes the recommended track, this pin should follow.
+
+  - id: alpine-base
+    kind: base_image
+    source:
+      type: docker_hub
+      image: alpine
+      track: stable
+    pinned_in:
+      - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
+    current_pin: "alpine:3.19"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Alpine 3.19 reached end-of-support November 2025. 3.21 / 3.22
+      are current. Old Alpine ships old musl, old apk packages,
+      unpatched CVEs in busybox.
+
+  - id: ubuntu-runner
+    kind: base_image
+    source:
+      type: docker_hub
+      image: ubuntu
+      track: lts
+    pinned_in:
+      - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
+    current_pin: "ubuntu-latest (24.04)"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      `runs-on: ubuntu-latest` follows GitHub's rollout — was 22.04,
+      migrated to 24.04 during 2024. Guidance should not pin to
+      `ubuntu-22.04` explicitly without reason.
+
+  # ───────── GitHub Actions ─────────
+
+  - id: actions-checkout
+    kind: action
+    source:
+      type: github_releases
+      repo: actions/checkout
+      track: latest
+    pinned_in:
+      - saas-security-pack/github-supply-chain/references/actions-hardening.md
+      - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
+      - .github/workflows/validate-all.yml
+    current_pin: "11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Action SHAs are the pin format we teach. When upstream releases
+      a new minor/patch (security fix in checkout itself, dependency
+      bump), the example SHA in our hardened-workflow.yml goes stale.
+      Stale examples teach users to copy outdated SHAs.
+
+  - id: actions-setup-node
+    kind: action
+    source:
+      type: github_releases
+      repo: actions/setup-node
+      track: latest
+    pinned_in:
+      - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
+    current_pin: "PLACEHOLDER-SHA  # v4.x"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Placeholder is fine in a template, but a comment with the latest
+      real major (v4.x) needs to keep up. v5 release would invalidate
+      the comment.
+
+  - id: actions-dependency-review
+    kind: action
+    source:
+      type: github_releases
+      repo: actions/dependency-review-action
+      track: latest
+    pinned_in:
+      - saas-security-pack/github-supply-chain/references/dependency-review.md
+      - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
+    current_pin: "v4.x"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Severity thresholds and license-deny list semantics have changed
+      across major versions. Pinning to a major + tracking minors is
+      the right pattern.
+
+  - id: github-codeql-action
+    kind: action
+    source:
+      type: github_releases
+      repo: github/codeql-action
+      track: latest
+    pinned_in:
+      - saas-security-pack/github-supply-chain/assets/hardened-workflow.yml
+    current_pin: "v3.x"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Query suite names (`security-extended`, `security-and-quality`)
+      have changed across CodeQL versions. Old guidance can refer to
+      removed suites.
+
+  # ───────── Frameworks ─────────
+
+  - id: nextjs-framework
+    kind: framework
+    source:
+      type: npm
+      package: next
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/nextjs-security/SKILL.md
+      - appsec-stack-pack/nextjs-security/references/app-router-patterns.md
+    current_pin: "14"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Next.js 15 (Oct 2024) changed Server Actions auth defaults,
+      cache semantics (`fetch` no longer aggressively caches by
+      default), and `cookies()` / `headers()` now async. Guidance
+      written for 14 may MISS new attack surfaces in 15 (e.g., the
+      cache-key collision class of bugs).
+
+  - id: django-framework
+    kind: framework
+    source:
+      type: pypi
+      package: django
+      track: stable
+    pinned_in:
+      - appsec-stack-pack/django-security/SKILL.md
+    current_pin: "4"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Django 5.x is current; 4.2 is the LTS still receiving security
+      patches. Django 5 changed default DB transaction handling for
+      async views, changed `SECURE_REFERRER_POLICY` default, added
+      `LoginRequiredMiddleware`. Skills referring to "Django 4" should
+      cover 4.2 LTS AND 5.x patterns.
+
+  - id: fastapi-framework
+    kind: framework
+    source:
+      type: pypi
+      package: fastapi
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/fastapi-security/SKILL.md
+    current_pin: null
+    last_verified: "2026-05-23"
+    drift_risk: |
+      FastAPI 0.110+ changed dependency-injection caching semantics
+      relevant to per-request auth. Pydantic v2 (default in recent
+      FastAPI) changed validation error formats — skills with example
+      error responses may show v1 shapes.
+
+  - id: react-framework
+    kind: framework
+    source:
+      type: npm
+      package: react
+      track: latest
+    pinned_in:
+      - appsec-stack-pack/react-security/SKILL.md
+      - appsec-stack-pack/react-security/references/jsx-xss-sinks.md
+    current_pin: null
+    last_verified: "2026-05-23"
+    drift_risk: |
+      React 19 (Dec 2024) introduced Server Components by default,
+      Actions, new ref semantics. `dangerouslySetInnerHTML` guidance
+      still applies but `use()` and form Actions create new XSS sinks
+      worth documenting.
+
+  # ───────── Tools ─────────
+
+  - id: cosign-tool
+    kind: tool
+    source:
+      type: github_releases
+      repo: sigstore/cosign
+      track: latest
+    pinned_in:
+      - saas-security-pack/github-supply-chain/references/sbom-generation.md
+      - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
+    current_pin: "v2.x"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Cosign 2.x removed legacy key formats and changed default
+      verification flags. Examples using `cosign sign-blob` syntax
+      from 1.x will fail on current binaries.
+
+  - id: trivy-scanner
+    kind: tool
+    source:
+      type: github_releases
+      repo: aquasecurity/trivy
+      track: latest
+    pinned_in:
+      - saas-security-pack/iac-container-security/references/dockerfile-hardening.md
+      - saas-security-pack/iac-container-security/scripts/run_iac_scanners.sh
+    current_pin: null
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Trivy 0.50+ changed scanner naming (`--scanners` accepts new
+      values), removed deprecated flags. Old example invocations error
+      on current versions.
+
+  - id: checkov-scanner
+    kind: tool
+    source:
+      type: pypi
+      package: checkov
+      track: latest
+    pinned_in:
+      - saas-security-pack/iac-container-security/scripts/run_iac_scanners.sh
+    current_pin: null
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Checkov check IDs (CKV_AWS_*) are added/renamed over time.
+      Suppression examples (`.checkov.yaml` skip-check lists) need to
+      reference IDs that still exist.
+
+  # ───────── Protocols / Standards ─────────
+
+  - id: tls-protocol
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://datatracker.ietf.org/doc/html/rfc8446
+      track: stable
+    pinned_in:
+      - saas-security-pack/saas-compliance-audit/SKILL.md
+      - saas-security-pack/saas-frontend-hardening/SKILL.md
+    current_pin: "TLS 1.2+ required, 1.3 preferred"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      Stable; review yearly. If/when TLS 1.4 is standardized or 1.2 is
+      formally deprecated for compliance frameworks (PCI DSS 4.0
+      removed TLS 1.0/1.1 entirely; next revisions may tighten 1.2),
+      update guidance.
+
+  - id: oauth-pkce
+    kind: protocol
+    source:
+      type: official_endpoint
+      url: https://datatracker.ietf.org/doc/html/rfc7636
+      track: stable
+    pinned_in:
+      - saas-security-pack/saas-api-security/SKILL.md
+    current_pin: "PKCE required for public clients"
+    last_verified: "2026-05-23"
+    drift_risk: |
+      OAuth 2.1 (draft) makes PKCE mandatory for ALL clients, not just
+      public. Worth tracking when 2.1 is finalized.
+
+# ───────── Inventory metadata ─────────
+
+inventory:
+  schema_version: 1
+  last_full_review: "2026-05-23"
+  maintainer: "@hlsitechio"
+  notes: |
+    Entries with current_pin: null are tracked but have no concrete
+    version mentioned yet in the skills — the drift check still flags
+    upstream advisories so we can decide whether to add specific
+    guidance.
