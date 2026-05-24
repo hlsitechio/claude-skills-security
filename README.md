@@ -2,9 +2,20 @@
   <img src="docs/banner-v2.png" alt="claude-skills-security — Defensive Security Audit Skills for SaaS Apps" width="100%">
 </p>
 
+<p align="center">
+  <a href="SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy-blue?logo=github&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <a href=".github/workflows/validate-all.yml"><img alt="Validate skills" src="https://img.shields.io/github/actions/workflow/status/hlsitechio/claude-skills-security/validate-all.yml?branch=main&label=validate"></a>
+  <a href=".github/workflows/secret-scan.yml"><img alt="Secret scan" src="https://img.shields.io/github/actions/workflow/status/hlsitechio/claude-skills-security/secret-scan.yml?branch=main&label=secret%20scan"></a>
+  <a href=".github/tech-inventory.yml"><img alt="Tech inventory" src="https://img.shields.io/badge/tech%20inventory-61%20entries-orange"></a>
+  <a href="docs/ENHANCEMENT_PLAN.md"><img alt="Drift watch" src="https://img.shields.io/badge/drift-4C%20%C2%B7%2021H%20%C2%B7%2016M%20%C2%B7%2016L-yellow"></a>
+</p>
+
 # claude-skills-security
 
 A collection of **40 defensive security audit skills for Claude**, organized as two complementary packs.
+
+> 🛡️ **Found a security issue in the skill content?** See [`SECURITY.md`](SECURITY.md) — private GitHub advisory or `hlarosesurprenant@gmail.com`. Acknowledged within 3 business days; Critical fixes within 14.
 
 ## At a glance
 
@@ -17,7 +28,9 @@ A collection of **40 defensive security audit skills for Claude**, organized as 
 | **Tech inventory** | 61 tracked technologies with 141 cited sources ([`.github/tech-inventory.yml`](.github/tech-inventory.yml)) |
 | **Drift watch** | 4 Critical · 21 High · 16 Medium · 16 Low — current as of 2026-05-24 |
 | **CI** | Per-skill schema validation + inventory schema v3 validation ([`.github/workflows/validate-all.yml`](.github/workflows/validate-all.yml)) |
-| **License** | MIT |
+| **Secret scanning** | gitleaks on every PR + weekly full-history rescan ([`.github/workflows/secret-scan.yml`](.github/workflows/secret-scan.yml)) |
+| **Security policy** | Responsible disclosure — see [`SECURITY.md`](SECURITY.md) |
+| **License** | MIT — see [`LICENSE`](LICENSE) |
 
 The packs answer different questions, and Claude picks skills from either (or both) based on what the user is asking:
 
@@ -117,6 +130,27 @@ Each pack also has a `scripts/package_skills.sh` that produces per-skill `.zip` 
 - **One question per skill.** Skills don't try to cover the universe — each has a narrow trigger surface so Claude can route accurately.
 - **Multi-skill orchestration.** A real audit often activates 5–7 skills concurrently. Finding ID prefixes prevent collision across all 40 skills; the combined report is severity-sorted.
 - **Reproducible evidence.** Every finding has a file:line reference and a copy-pasteable remediation.
+
+## Security
+
+> 🛡️ This repository is the source of truth for **40 defensive security audit skills**. A flaw in the *content* (a check recommending an insecure pattern, a "GOOD" example with a subtle bug, a missing CVE reference) can propagate to downstream audits — so we treat content bugs as security issues.
+
+**Reporting:**
+
+| Channel | Use when |
+|---------|----------|
+| [GitHub private vulnerability report](https://github.com/hlsitechio/claude-skills-security/security/advisories/new) | Preferred. Only the maintainer is notified; coordinated disclosure. |
+| `hlarosesurprenant@gmail.com` (subject `[claude-skills-security]`) | Fallback if you don't have a GitHub account. |
+
+**SLA:** acknowledged within 3 business days · triaged within 7 days · Critical fixes shipped within 14 days · 90-day coordinated disclosure unless otherwise agreed.
+
+Full policy and what counts as in-scope: [`SECURITY.md`](SECURITY.md).
+
+**Repo-side guarantees:**
+- Every PR touching skill content, the tech inventory, CI workflows, or scripts requires maintainer review (see [`.github/CODEOWNERS`](.github/CODEOWNERS)).
+- Every PR runs gitleaks + a custom entropy scanner ([`.github/workflows/secret-scan.yml`](.github/workflows/secret-scan.yml)).
+- Every PR is validated against the SKILL.md schema and Claude upload constraints ([`.github/workflows/validate-all.yml`](.github/workflows/validate-all.yml)).
+- The CI workflow itself follows the supply-chain guidance the skills teach: minimal token, SHA-pinned actions.
 
 ## Companion projects
 
