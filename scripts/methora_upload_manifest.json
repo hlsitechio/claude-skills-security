@@ -1,0 +1,287 @@
+{
+  "uploaded_at": "2026-05-24",
+  "endpoint": "https://qletndspniubnyrogiax.supabase.co/functions/v1/skills-mcp",
+  "total": 40,
+  "skills": [
+    {
+      "name": "angular-security",
+      "category": "appsec-stack",
+      "id": "fd0f5c0e-b07b-45ba-b1fb-5bd9fdf05990",
+      "slug": "angular_security",
+      "updated_at": "2026-05-24T12:46:14.039138+00:00"
+    },
+    {
+      "name": "aws-lambda-security",
+      "category": "appsec-stack",
+      "id": "f57fa3fe-fcc6-416a-9ba4-2f8abc961add",
+      "slug": "aws_lambda_security",
+      "updated_at": "2026-05-24T12:46:14.7473+00:00"
+    },
+    {
+      "name": "clerk-security",
+      "category": "appsec-stack",
+      "id": "af3d15df-1465-4d36-8d3f-bc615b654a6a",
+      "slug": "clerk_security",
+      "updated_at": "2026-05-24T12:46:15.511194+00:00"
+    },
+    {
+      "name": "cloudflare-workers-security",
+      "category": "appsec-stack",
+      "id": "8e6dd988-1c92-43e4-9824-a219833a035c",
+      "slug": "cloudflare_workers_security",
+      "updated_at": "2026-05-24T12:46:16.167627+00:00"
+    },
+    {
+      "name": "django-security",
+      "category": "appsec-stack",
+      "id": "de3809d8-0acd-44a3-b1df-908a4d10e7f2",
+      "slug": "django_security",
+      "updated_at": "2026-05-24T12:46:16.811991+00:00"
+    },
+    {
+      "name": "dotnet-aspnetcore-security",
+      "category": "appsec-stack",
+      "id": "796779d0-e4d9-49cb-94ba-bb9cc4415404",
+      "slug": "dotnet_aspnetcore_security",
+      "updated_at": "2026-05-24T12:46:17.481408+00:00"
+    },
+    {
+      "name": "electron-security",
+      "category": "appsec-stack",
+      "id": "725f98af-d72a-464b-9ed3-5c8de2e6f8ee",
+      "slug": "electron_security",
+      "updated_at": "2026-05-24T12:53:08.759026+00:00"
+    },
+    {
+      "name": "fastapi-security",
+      "category": "appsec-stack",
+      "id": "f296bfec-7f3e-4e66-aaea-af026348ae9c",
+      "slug": "fastapi_security",
+      "updated_at": "2026-05-24T12:46:18.198355+00:00"
+    },
+    {
+      "name": "fastify-security",
+      "category": "appsec-stack",
+      "id": "7f417415-8d85-446c-96ec-119529b7c100",
+      "slug": "fastify_security",
+      "updated_at": "2026-05-24T12:46:18.924065+00:00"
+    },
+    {
+      "name": "flask-security",
+      "category": "appsec-stack",
+      "id": "d7f371d2-fbea-41fe-a019-ab5b0be439bf",
+      "slug": "flask_security",
+      "updated_at": "2026-05-24T12:46:19.701053+00:00"
+    },
+    {
+      "name": "github-repo-hardening",
+      "category": "saas-security",
+      "id": "7998ebf6-3c2d-4a27-9d4a-daa5b0909453",
+      "slug": "github_repo_hardening",
+      "updated_at": "2026-05-24T12:46:07.404155+00:00"
+    },
+    {
+      "name": "github-supply-chain",
+      "category": "saas-security",
+      "id": "72ae0e35-3c25-4377-8dee-493d128354cb",
+      "slug": "github_supply_chain",
+      "updated_at": "2026-05-24T12:46:08.18963+00:00"
+    },
+    {
+      "name": "go-security",
+      "category": "appsec-stack",
+      "id": "d267fdcb-a31f-4d89-bdbd-f1b13dc82e8d",
+      "slug": "go_security",
+      "updated_at": "2026-05-24T12:46:20.328058+00:00"
+    },
+    {
+      "name": "graphql-security",
+      "category": "appsec-stack",
+      "id": "db7524ea-1b9d-46ed-a1da-e02b9a1eafc6",
+      "slug": "graphql_security",
+      "updated_at": "2026-05-24T12:46:20.95663+00:00"
+    },
+    {
+      "name": "hono-security",
+      "category": "appsec-stack",
+      "id": "143785d2-43fb-44e0-b9c1-94daccdc9fdf",
+      "slug": "hono_security",
+      "updated_at": "2026-05-24T12:46:21.598504+00:00"
+    },
+    {
+      "name": "iac-container-security",
+      "category": "saas-security",
+      "id": "d99ed37a-8ffa-41a7-a356-bca0ea6c021b",
+      "slug": "iac_container_security",
+      "updated_at": "2026-05-24T12:46:08.947624+00:00"
+    },
+    {
+      "name": "laravel-security",
+      "category": "appsec-stack",
+      "id": "464efa50-34c2-41cb-8347-192aae8073e2",
+      "slug": "laravel_security",
+      "updated_at": "2026-05-24T12:46:22.270545+00:00"
+    },
+    {
+      "name": "mongoose-mongodb-security",
+      "category": "appsec-stack",
+      "id": "cc8dceb9-780a-46e1-941b-f5673b369a86",
+      "slug": "mongoose_mongodb_security",
+      "updated_at": "2026-05-24T12:46:22.955587+00:00"
+    },
+    {
+      "name": "nestjs-security",
+      "category": "appsec-stack",
+      "id": "12273a75-bfd3-4174-b0f5-bc2fae3fb3ba",
+      "slug": "nestjs_security",
+      "updated_at": "2026-05-24T12:46:23.672857+00:00"
+    },
+    {
+      "name": "nextauth-security",
+      "category": "appsec-stack",
+      "id": "fae62e9d-839b-4de6-8423-ca4b4a819134",
+      "slug": "nextauth_security",
+      "updated_at": "2026-05-24T12:46:24.375348+00:00"
+    },
+    {
+      "name": "nextjs-security",
+      "category": "appsec-stack",
+      "id": "3e559c5e-110c-4166-897d-f38ccde82177",
+      "slug": "nextjs_security",
+      "updated_at": "2026-05-24T12:46:25.087321+00:00"
+    },
+    {
+      "name": "nodejs-express-security",
+      "category": "appsec-stack",
+      "id": "85a19aff-624a-4f6f-941f-7900164c5ffd",
+      "slug": "nodejs_express_security",
+      "updated_at": "2026-05-24T12:46:25.693056+00:00"
+    },
+    {
+      "name": "prisma-orm-security",
+      "category": "appsec-stack",
+      "id": "6765cbb9-755e-42e2-819d-858ba177e21f",
+      "slug": "prisma_orm_security",
+      "updated_at": "2026-05-24T12:46:26.362658+00:00"
+    },
+    {
+      "name": "rails-security",
+      "category": "appsec-stack",
+      "id": "9a2acb88-595e-4385-bb1e-39eb312e235f",
+      "slug": "rails_security",
+      "updated_at": "2026-05-24T12:46:27.131485+00:00"
+    },
+    {
+      "name": "react-security",
+      "category": "appsec-stack",
+      "id": "5725ab37-37b4-4e49-8e4d-a1256cdbd550",
+      "slug": "react_security",
+      "updated_at": "2026-05-24T12:46:27.791813+00:00"
+    },
+    {
+      "name": "redis-security",
+      "category": "appsec-stack",
+      "id": "ba86393d-7b20-4672-9b8b-da5ca07d4639",
+      "slug": "redis_security",
+      "updated_at": "2026-05-24T12:46:28.393186+00:00"
+    },
+    {
+      "name": "saas-api-security",
+      "category": "saas-security",
+      "id": "2c6eb55b-989c-4a6a-873d-8f2971428c61",
+      "slug": "saas_api_security",
+      "updated_at": "2026-05-24T12:46:09.685135+00:00"
+    },
+    {
+      "name": "saas-code-security-review",
+      "category": "saas-security",
+      "id": "8411b297-aed1-43fe-96a3-d26ab05b7582",
+      "slug": "saas_code_security_review",
+      "updated_at": "2026-05-24T12:46:10.453782+00:00"
+    },
+    {
+      "name": "saas-compliance-audit",
+      "category": "saas-security",
+      "id": "908c8413-0ab4-4244-a06b-b088ac00cef9",
+      "slug": "saas_compliance_audit",
+      "updated_at": "2026-05-24T12:46:11.180935+00:00"
+    },
+    {
+      "name": "saas-frontend-hardening",
+      "category": "saas-security",
+      "id": "889036f8-86f5-4e67-8fd7-4478d7599214",
+      "slug": "saas_frontend_hardening",
+      "updated_at": "2026-05-24T12:46:11.882894+00:00"
+    },
+    {
+      "name": "saas-tenant-isolation",
+      "category": "saas-security",
+      "id": "b7d46d73-201a-40ed-b516-4d6867e946e1",
+      "slug": "saas_tenant_isolation",
+      "updated_at": "2026-05-24T12:46:12.566783+00:00"
+    },
+    {
+      "name": "spring-boot-security",
+      "category": "appsec-stack",
+      "id": "edc532fd-c125-4a09-9141-3e117e30e639",
+      "slug": "spring_boot_security",
+      "updated_at": "2026-05-24T12:46:29.017226+00:00"
+    },
+    {
+      "name": "supabase-security-audit",
+      "category": "saas-security",
+      "id": "99ddc975-5ff5-4e49-99c7-42b94df77b34",
+      "slug": "supabase_security_audit",
+      "updated_at": "2026-05-24T12:46:13.323228+00:00"
+    },
+    {
+      "name": "svelte-sveltekit-security",
+      "category": "appsec-stack",
+      "id": "6164c9c7-5bdc-454a-b0a2-c8446e8ba94a",
+      "slug": "svelte_sveltekit_security",
+      "updated_at": "2026-05-24T12:46:29.666558+00:00"
+    },
+    {
+      "name": "trpc-security",
+      "category": "appsec-stack",
+      "id": "bf0b1a3d-1593-4249-9423-8414d94a6c6b",
+      "slug": "trpc_security",
+      "updated_at": "2026-05-24T12:46:30.398437+00:00"
+    },
+    {
+      "name": "vercel-platform-security",
+      "category": "appsec-stack",
+      "id": "bc0d708d-5746-491c-a6aa-24417507f152",
+      "slug": "vercel_platform_security",
+      "updated_at": "2026-05-24T12:46:31.209749+00:00"
+    },
+    {
+      "name": "vite-security",
+      "category": "appsec-stack",
+      "id": "86478da1-b14c-47c1-a0c6-1b98ab1e4d78",
+      "slug": "vite_security",
+      "updated_at": "2026-05-24T12:46:31.810008+00:00"
+    },
+    {
+      "name": "vue-nuxt-security",
+      "category": "appsec-stack",
+      "id": "01354a08-9cef-4a12-b9f2-74fa74e67598",
+      "slug": "vue_nuxt_security",
+      "updated_at": "2026-05-24T12:46:32.43735+00:00"
+    },
+    {
+      "name": "web-platform-security",
+      "category": "appsec-stack",
+      "id": "317437df-f7da-4dab-96ff-9f7ea7e915fc",
+      "slug": "web_platform_security",
+      "updated_at": "2026-05-24T12:46:33.108413+00:00"
+    },
+    {
+      "name": "websocket-security",
+      "category": "appsec-stack",
+      "id": "c6a2bda7-daae-402c-8491-031d633e28ce",
+      "slug": "websocket_security",
+      "updated_at": "2026-05-24T12:46:33.809759+00:00"
+    }
+  ]
+}
