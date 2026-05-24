@@ -58,6 +58,16 @@ A version "1 patch behind" without a CVE is LOW; "1 patch behind" with a CVE tha
 
 If a skill references a tech version that is not in `tech-inventory.yml`, propose adding it. New inventory entries are part of the review output, not a separate PR.
 
+## SECONDARY review focus: depth backlog
+
+[`docs/ENHANCEMENT_PLAN.md`](../docs/ENHANCEMENT_PLAN.md) is the per-skill depth backlog from a multi-agent review (2026-05-23). After resolving inventory drift findings, draw from this document for "Wave 2" reference-file additions:
+
+- Skills classified `thin` (no references) get 2–4 new reference files each — the plan specifies file name, ~line count, outline, sources.
+- Skills classified `partial` (1–2 references) get 1–3 additional reference files to reach the bar.
+- Skills classified `rich` already have 3+ references; surface only standard-drift updates from the plan.
+
+When proposing depth additions, use the file outlines in the plan verbatim — they specify which sub-topic each new reference covers and which authoritative sources to cite. The Wave 1 / Wave 2 / Wave 3 / Wave 4 priority order is defined in the plan's "Execution priorities" section.
+
 ## Hard constraints
 
 - **Defensive only.** Reject any change that adds offensive content: exploit code, weaponized payloads, bypass techniques presented as attack chains, automated pentest tooling. The audit framing is *find-and-fix*, not *exploit*.
