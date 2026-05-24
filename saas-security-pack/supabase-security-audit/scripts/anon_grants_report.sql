@@ -1,9 +1,12 @@
 -- anon_grants_report.sql
 -- Reports everything granted to anon, authenticated, and PUBLIC in the public schema
 -- (and any user schemas). Use this to find over-grants.
--- Run in Supabase SQL editor. Read-only.
+--
+-- Run in the Supabase SQL editor OR via psql. Read-only.
+-- The Supabase SQL editor does not support psql meta-commands (\echo, \timing),
+-- so this script uses SQL comments for section headers instead.
 
-\echo '=== TABLE GRANTS to anon, authenticated, PUBLIC ==='
+-- === TABLE GRANTS to anon, authenticated, PUBLIC ===
 SELECT
   grantee,
   table_schema,
@@ -31,8 +34,7 @@ ORDER BY
   CASE grantee WHEN 'anon' THEN 0 WHEN 'PUBLIC' THEN 1 ELSE 2 END,
   table_schema, table_name;
 
-\echo ''
-\echo '=== FUNCTION GRANTS to anon, authenticated, PUBLIC ==='
+-- === FUNCTION GRANTS to anon, authenticated, PUBLIC ===
 SELECT
   grantee,
   routine_schema,
@@ -60,8 +62,7 @@ ORDER BY
   CASE rp.grantee WHEN 'PUBLIC' THEN 0 WHEN 'anon' THEN 1 ELSE 2 END,
   rp.routine_schema, rp.routine_name;
 
-\echo ''
-\echo '=== SEQUENCE GRANTS to anon, authenticated ==='
+-- === SEQUENCE GRANTS to anon, authenticated ===
 SELECT
   grantee,
   object_schema AS schema,
@@ -78,8 +79,7 @@ WHERE grantee IN ('anon', 'authenticated', 'PUBLIC')
   )
 ORDER BY grantee, object_schema, object_name;
 
-\echo ''
-\echo '=== SCHEMA USAGE grants ==='
+-- === SCHEMA USAGE grants ===
 SELECT
   grantee,
   object_schema AS schema,

@@ -1,6 +1,6 @@
 ---
 name: prisma-orm-security
-description: Security audit specific to Prisma ORM usage including raw query escape hatches ($queryRaw, $executeRaw, $queryRawUnsafe), mass assignment via spreading user input into create/update, missing tenant scoping on findFirst/findMany, IDOR through Prisma query construction, schema-level access control gaps, and Prisma Accelerate/Pulse security considerations. Use this skill whenever the user mentions Prisma, prisma/client, schema.prisma, $queryRaw, prisma.<model>.create/update/findMany, or asks "audit my Prisma queries", "Prisma security review", "raw query safety", "Prisma mass assignment". Trigger when the codebase contains `@prisma/client`, `schema.prisma`, or any `prisma.` query calls.
+description: Security audit specific to Prisma ORM usage including raw query escape hatches ($queryRaw, $executeRaw, $queryRawUnsafe), mass assignment via spreading user input into create/update, missing tenant scoping on findFirst/findMany, IDOR through Prisma query construction, schema-level access control gaps, and Prisma Accelerate/Pulse security considerations. Use this skill whenever the user mentions Prisma, prisma/client, schema.prisma, $queryRaw, the prisma.modelName.create / update / findMany pattern, or asks "audit my Prisma queries", "Prisma security review", "raw query safety", "Prisma mass assignment". Trigger when the codebase contains @prisma/client, schema.prisma, or any prisma. query calls.
 ---
 
 # Prisma ORM Security Audit

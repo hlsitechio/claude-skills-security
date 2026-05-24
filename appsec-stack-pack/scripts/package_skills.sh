@@ -1,66 +1,94 @@
 #!/usr/bin/env bash
-# package_skills.sh — produce one zip per skill in ./dist/, plus a repo zip
+# package_skills.sh — produce one self-contained zip per skill in ./dist/.
+#
+# Each zip has a single top-level folder (the skill name) containing
+# SKILL.md, references/, scripts/, assets/, AND a copy of the pack's
+# _shared/ inlined inside the skill folder. References from SKILL.md
+# to `../_shared/...` are rewritten to `_shared/...` so the zip is
+# fully self-contained when uploaded to Claude.ai / Claude Code.
+#
+# Usage: ./scripts/package_skills.sh [output_dir]
+
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-OUT="$ROOT/dist"
+OUT="${1:-$ROOT/dist}"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-SKILLS=(
-  react-security
-  nextjs-security
-  vite-security
-  vue-nuxt-security
-  svelte-sveltekit-security
-  angular-security
-  electron-security
-  nodejs-express-security
-  nestjs-security
-  fastify-security
-  hono-security
-  django-security
-  fastapi-security
-  flask-security
-  go-security
-  rails-security
-  laravel-security
-  spring-boot-security
-  dotnet-aspnetcore-security
-  graphql-security
-  trpc-security
-  websocket-security
-  prisma-orm-security
-  mongoose-mongodb-security
-  redis-security
-  clerk-security
-  nextauth-security
-  vercel-platform-security
-  cloudflare-workers-security
-  aws-lambda-security
-)
+# Pre-flight: zip must be available
+if ! command -v zip >/dev/null 2>&1; then
+  echo "ERROR: 'zip' is not installed" >&2
+  exit 1
+fi
 
-echo "Packaging individual skills..."
-for skill in "${SKILLS[@]}"; do
-  if [ ! -d "$skill" ]; then
-    echo "  SKIP (missing): $skill"
-    continue
-  fi
-  # Each skill zip includes the skill folder + _shared so it's self-installable
-  zip -qr "$OUT/${skill}.zip" "$skill" _shared
-  echo "  packaged: $OUT/${skill}.zip"
+# Discover skills: directories containing SKILL.md (excluding meta dirs)
+SKILLS=()
+for d in */; do
+  d="${d%/}"
+  [[ "$d" == "_shared" || "$d" == "scripts" ]] && continue
+  [[ -f "$d/SKILL.md" ]] && SKILLS+=("$d")
 done
 
-echo "Packaging full repo..."
-zip -qr "$OUT/appsec-stack-pack-full.zip" \
-  "${SKILLS[@]}" \
-  _shared \
-  README.md LICENSE CONTRIBUTING.md \
-  scripts \
-  .github 2>/dev/null || true
+if [[ ${#SKILLS[@]} -eq 0 ]]; then
+  echo "ERROR: no skills found (no */SKILL.md)" >&2
+  exit 1
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+PACKAGED=0
+for skill in "${SKILLS[@]}"; do
+  staging="$TMP/$skill"
+  mkdir -p "$staging"
+
+  # Copy skill contents
+  cp -R "$skill"/. "$staging"/
+
+  # Inline _shared/ INSIDE the skill folder so the zip is self-contained
+  if [[ -d "_shared" ]]; then
+    cp -R _shared "$staging/_shared"
+  fi
+
+  # Rewrite `../_shared/` -> `_shared/` in SKILL.md so paths resolve
+  # after extraction
+  if [[ -f "$staging/SKILL.md" ]]; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+      sed -i '' 's|\.\./\_shared/|_shared/|g' "$staging/SKILL.md"
+    else
+      sed -i 's|\.\./\_shared/|_shared/|g' "$staging/SKILL.md"
+    fi
+  fi
+
+  # Single top-level folder = skill name; ready to upload
+  zip_path="$OUT/${skill}.zip"
+  (
+    cd "$TMP" && \
+    zip -qr "$zip_path" "$skill" \
+      -x '*.DS_Store' \
+      -x '*/__pycache__/*' \
+      -x '*/.pytest_cache/*' \
+      -x '*/node_modules/*' \
+      -x '*/.git/*' \
+      -x '*/.vscode/*' \
+      -x '*/.idea/*'
+  )
+
+  size=$(du -h "$zip_path" | cut -f1)
+  files=$(unzip -l "$zip_path" | tail -1 | awk '{print $2}')
+  printf "  ok %-32s %6s, %s files\n" "$skill" "$size" "$files"
+  PACKAGED=$((PACKAGED + 1))
+done
 
 echo
-echo "Output: $OUT"
-ls -lh "$OUT" | tail -n +2 | awk '{print "  " $9, "(" $5 ")"}'
+echo "Packaged $PACKAGED skill(s) to $OUT/"
+echo
+echo "Install in Claude.ai:"
+echo "  Settings -> Capabilities -> Skills -> Upload Skill -> choose a .zip"
+echo
+echo "Install in Claude Code (per repo or global):"
+echo "  mkdir -p ~/.claude/skills"
+echo "  cp -r <skill-folder> ~/.claude/skills/"

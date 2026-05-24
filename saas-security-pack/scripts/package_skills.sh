@@ -1,67 +1,86 @@
 #!/usr/bin/env bash
-# package_skills.sh
-# Zips each skill folder into a .skill / .zip file ready to upload to Claude.ai
-# (Settings → Capabilities → Skills → Upload Skill).
+# package_skills.sh — produce one self-contained zip per skill in ./dist/.
+#
+# Each zip has a single top-level folder (the skill name) containing
+# SKILL.md, references/, scripts/, assets/, AND a copy of the pack's
+# _shared/ inlined inside the skill folder. References from SKILL.md
+# to `../_shared/...` are rewritten to `_shared/...` so the zip is
+# fully self-contained when uploaded to Claude.ai / Claude Code.
 #
 # Usage: ./scripts/package_skills.sh [output_dir]
-# Default output_dir: ./dist
 
 set -euo pipefail
 
-# Repo root = parent of this script's directory
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-REPO_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
-OUTPUT_DIR="${1:-$REPO_ROOT/dist}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
 
-mkdir -p "$OUTPUT_DIR"
+OUT="${1:-$ROOT/dist}"
+rm -rf "$OUT"
+mkdir -p "$OUT"
 
-# Find every skill folder (those containing a SKILL.md)
-SKILLS=$(find "$REPO_ROOT" -mindepth 2 -maxdepth 2 -name 'SKILL.md' -type f \
-  | xargs -n1 dirname \
-  | sort)
-
-if [[ -z "$SKILLS" ]]; then
-  echo "No skills found (no */SKILL.md files in $REPO_ROOT)." >&2
-  exit 1
-fi
-
-echo "Packaging skills to: $OUTPUT_DIR"
-echo ""
-
-# Check zip is available
+# Pre-flight: zip must be available
 if ! command -v zip >/dev/null 2>&1; then
-  echo "ERROR: 'zip' is not installed." >&2
+  echo "ERROR: 'zip' is not installed" >&2
   echo "  macOS: pre-installed; reinstall via 'brew install zip'" >&2
   echo "  Ubuntu/Debian: sudo apt install zip" >&2
   echo "  Alpine: apk add zip" >&2
   exit 1
 fi
 
+# Discover skills: directories containing SKILL.md (excluding meta dirs)
+SKILLS=()
+for d in */; do
+  d="${d%/}"
+  [[ "$d" == "_shared" || "$d" == "scripts" ]] && continue
+  [[ -f "$d/SKILL.md" ]] && SKILLS+=("$d")
+done
+
+if [[ ${#SKILLS[@]} -eq 0 ]]; then
+  echo "ERROR: no skills found (no */SKILL.md)" >&2
+  exit 1
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
 PACKAGED=0
-for skill_path in $SKILLS; do
-  skill_name=$(basename "$skill_path")
-  zip_path="$OUTPUT_DIR/${skill_name}.zip"
-
-  # Validate the skill has a SKILL.md with frontmatter
-  if ! head -1 "$skill_path/SKILL.md" | grep -q '^---$'; then
-    echo "  ⚠  $skill_name: SKILL.md missing YAML frontmatter; skipping"
+for skill in "${SKILLS[@]}"; do
+  # Per-skill frontmatter sanity check
+  if ! head -1 "$skill/SKILL.md" | grep -q '^---$'; then
+    echo "  warn: $skill: SKILL.md missing YAML frontmatter; skipping"
     continue
   fi
 
-  # Validate the name in frontmatter matches the folder name
-  name_in_frontmatter=$(sed -n 's/^name: //p' "$skill_path/SKILL.md" | head -1 | tr -d '"' | tr -d "'")
-  if [[ "$name_in_frontmatter" != "$skill_name" ]]; then
-    echo "  ⚠  $skill_name: frontmatter name '$name_in_frontmatter' != folder name; skipping"
+  name_in_fm=$(sed -n 's/^name: //p' "$skill/SKILL.md" | head -1 | tr -d '"' | tr -d "'")
+  if [[ "$name_in_fm" != "$skill" ]]; then
+    echo "  warn: $skill: frontmatter name '$name_in_fm' != folder name; skipping"
     continue
   fi
 
-  # Clean up old zip if present
-  rm -f "$zip_path"
+  staging="$TMP/$skill"
+  mkdir -p "$staging"
 
-  # Zip the folder content; exclude OS junk, version control, IDE files
+  # Copy skill contents
+  cp -R "$skill"/. "$staging"/
+
+  # Inline _shared/ INSIDE the skill folder
+  if [[ -d "_shared" ]]; then
+    cp -R _shared "$staging/_shared"
+  fi
+
+  # Rewrite `../_shared/` -> `_shared/` in SKILL.md
+  if [[ -f "$staging/SKILL.md" ]]; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+      sed -i '' 's|\.\./\_shared/|_shared/|g' "$staging/SKILL.md"
+    else
+      sed -i 's|\.\./\_shared/|_shared/|g' "$staging/SKILL.md"
+    fi
+  fi
+
+  zip_path="$OUT/${skill}.zip"
   (
-    cd "$REPO_ROOT" && \
-    zip -qr "$zip_path" "$skill_name" \
+    cd "$TMP" && \
+    zip -qr "$zip_path" "$skill" \
       -x '*.DS_Store' \
       -x '*/__pycache__/*' \
       -x '*/.pytest_cache/*' \
@@ -73,17 +92,16 @@ for skill_path in $SKILLS; do
 
   size=$(du -h "$zip_path" | cut -f1)
   files=$(unzip -l "$zip_path" | tail -1 | awk '{print $2}')
-  printf "  ✓ %-32s %6s, %s files\n" "$skill_name" "$size" "$files"
+  printf "  ok %-32s %6s, %s files\n" "$skill" "$size" "$files"
   PACKAGED=$((PACKAGED + 1))
 done
 
-echo ""
-echo "Packaged $PACKAGED skill(s) to $OUTPUT_DIR/"
-echo ""
-echo "To install in Claude.ai:"
-echo "  Settings → Capabilities → Skills → Upload Skill"
-echo "  → choose any .zip from $OUTPUT_DIR/"
-echo ""
-echo "To install in Claude Code:"
+echo
+echo "Packaged $PACKAGED skill(s) to $OUT/"
+echo
+echo "Install in Claude.ai:"
+echo "  Settings -> Capabilities -> Skills -> Upload Skill -> choose a .zip"
+echo
+echo "Install in Claude Code (per repo or global):"
 echo "  mkdir -p ~/.claude/skills"
 echo "  cp -r <skill-folder> ~/.claude/skills/"

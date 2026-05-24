@@ -6,13 +6,19 @@
 # Usage: ./run_iac_scanners.sh [path] [--severity HIGH,CRITICAL]
 # Default path is current directory.
 #
+# Side effects: writes scanner output files to $REPORT_DIR.
+# By default $REPORT_DIR is a fresh temp dir (path printed at the end) so the
+# script does NOT mutate the target repository. To write to a specific
+# location, set REPORT_DIR=/your/path before invoking.
+#
 # Requires: trivy, checkov, tfsec (installs hints printed if missing).
 
 set -uo pipefail
 
 TARGET="${1:-.}"
 SEVERITY="${SEVERITY:-HIGH,CRITICAL}"
-REPORT_DIR="${REPORT_DIR:-./audit-reports}"
+# Default to a temp dir outside the target so the audit stays read-only on $TARGET.
+REPORT_DIR="${REPORT_DIR:-$(mktemp -d -t iac-audit-XXXXXX)}"
 
 mkdir -p "$REPORT_DIR"
 
