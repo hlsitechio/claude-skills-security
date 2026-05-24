@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/banner.png" alt="claude-skills-security — 39 Defensive Security Audit Skills for SaaS Apps" width="100%">
+</p>
+
 # claude-skills-security
 
 A collection of **39 defensive security audit skills for Claude**, organized as two complementary packs.
