@@ -4,6 +4,17 @@ A bundle of 9 atomic [Claude Skills](https://docs.claude.com/en/docs/agents-and-
 
 Each skill is independent. Install the ones relevant to your stack; skip the rest.
 
+## At a glance
+
+| Metric | Value |
+|--------|-------|
+| Skills | 9 |
+| Check IDs | 407 |
+| Reference files | 30 (avg 3+ per skill) |
+| Scripts | 5 (audit SQL + scanner orchestration) |
+| Assets | 2 (RLS policy template + finding schema) |
+| Finding-ID prefixes | 9 unique (`GHSC`, `GHRH`, `SCSR`, `SUPA`, `STI`, `SAPI`, `SFH`, `IACS`, `SCMP`) |
+
 ## What's in the pack
 
 | Skill | What it audits |

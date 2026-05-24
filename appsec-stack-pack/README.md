@@ -2,6 +2,16 @@
 
 A collection of 31 defensive security audit skills for Claude, organized by technology stack. Designed to complement `saas-security-pack` (which is organized by audit domain).
 
+## At a glance
+
+| Metric | Value |
+|--------|-------|
+| Skills | 31 |
+| Check IDs | 1,184 |
+| Reference files | 10 (partial; expansion tracked in [`docs/ENHANCEMENT_PLAN.md`](../docs/ENHANCEMENT_PLAN.md)) |
+| Categories | 9 (Frontend, Backend Node, Backend Python, Other backends, API protocols, Data layer, Auth providers, Edge/Cloud, Web platform) |
+| Finding-ID prefixes | 31 unique (one per skill, see `_shared/findings-schema.md`) |
+
 The two packs answer different questions:
 
 - **`saas-security-pack`** — "What audit domain do I want to look at?" (supply chain, RLS, tenant isolation, compliance…)
